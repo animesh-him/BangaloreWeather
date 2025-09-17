@@ -1,184 +1,167 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Aerospace Park — Weather Dashboard (Dark by default)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Aerospace Park — Weather (mobile-friendly)</title>
 
-<!-- Libraries -->
+<!-- libs -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
-  /* theme variables - dark-first but supports light */
+  /* dark-by-default variables; light available with data-theme="light" */
   :root{
-    /* Dark default values (so data-theme="dark" looks perfect) */
-    --bg-from: #071017;
-    --bg-to:   #081424;
-    --page-text: #e6f0f8;
-    --card-bg: #0f1720;
-    --muted: #9aa6b2;
-    --accent: #ff6b6b;
-    --ok: #66e08b;
-    --warn: #ffb86b;
-    --bad: #ff8080;
-    --card-shadow: 0 8px 30px rgba(0,0,0,0.6);
-    --input-bg: rgba(20,26,32,0.6);
-    --table-border: rgba(255,255,255,0.06);
-    --map-border: rgba(255,255,255,0.06);
-    --panel-contrast: rgba(255,255,255,0.03);
-    --code-bg: rgba(255,255,255,0.02);
+    --bg-from:#071017; --bg-to:#081424; --text:#e6eef6; --muted:#9aa6b2;
+    --card:#0f1720; --accent:#ff6b6b; --ok:#66e08b; --panel:rgba(255,255,255,0.03);
+    --border:rgba(255,255,255,0.06);
   }
-
-  /* Light theme overrides (applied when data-theme="light") */
   [data-theme="light"]{
-    --bg-from: #f7f9fc;
-    --bg-to:   #f4f6f9;
-    --page-text: #07101a;
-    --card-bg: #ffffff;
-    --muted: #556070;
-    --accent: #b22222;
-    --ok: #2e7d32;
-    --warn: #ff9800;
-    --bad: #d32f2f;
-    --card-shadow: 0 8px 30px rgba(16,24,40,0.06);
-    --input-bg: rgba(255,255,255,0.98);
-    --table-border: rgba(16,24,40,0.05);
-    --map-border: rgba(16,24,40,0.04);
-    --panel-contrast: rgba(0,0,0,0.02);
-    --code-bg: rgba(0,0,0,0.02);
+    --bg-from:#f7f9fc; --bg-to:#f4f6f9; --text:#07101a; --muted:#556070;
+    --card:#ffffff; --accent:#b22222; --ok:#2e7d32; --panel:rgba(0,0,0,0.02); --border:rgba(16,24,40,0.05);
   }
 
-  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:var(--page-text)}
-  .wrap{max-width:1000px;margin:18px auto;padding:12px}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));font-family:Inter,system-ui,Roboto,Arial;color:var(--text);-webkit-font-smoothing:antialiased}
+  .wrap{max-width:980px;margin:10px auto;padding:10px}
   header{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   h1{margin:0;font-size:20px;color:var(--accent)}
-  .subtitle{color:var(--muted);font-size:13px}
+  .subtitle{font-size:13px;color:var(--muted)}
+
+  /* controls row */
   .controls{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  select,input,button{padding:8px 10px;border-radius:10px;border:1px solid var(--panel);background:var(--card);color:var(--text);font-size:13px}
+  .toggle{cursor:pointer}
 
-  input,select,button{
-    padding:8px 10px;border-radius:8px;border:1px solid var(--panel-contrast);
-    background:var(--input-bg);font-size:13px;color:var(--page-text);
-  }
-  button.primary{background:var(--accent);color:#fff;border:none}
+  /* make layout single-column on narrow screens */
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:12px}
+  @media(max-width:900px){ .grid{grid-template-columns:1fr} }
 
-  .grid{display:grid;grid-template-columns:1fr 380px;gap:14px;margin-top:14px}
-  @media(max-width:980px){.grid{grid-template-columns:1fr}}
-  .card{background:var(--card-bg);border-radius:12px;padding:12px;box-shadow:var(--card-shadow);color:var(--page-text)}
-  .summary{display:flex;gap:12px;align-items:center}
-  .icon{width:64px;height:64px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px;border:1px solid var(--panel-contrast);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
-  .summary .text{flex:1}
+  .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,0.35);color:var(--text);overflow:hidden}
+  .row{display:flex;gap:10px;align-items:center}
   .small{font-size:13px;color:var(--muted)}
   .muted{color:var(--muted)}
 
-  .charts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-  @media(max-width:640px){.charts{grid-template-columns:1fr}}
-  canvas{width:100%!important;height:160px!important;background:transparent}
+  /* temp summary bar */
+  .temp-bar {margin-top:10px;background:linear-gradient(90deg,var(--panel),transparent);padding:12px;border-radius:10px}
+  .scale{height:12px;background:rgba(255,255,255,0.04);border-radius:999px;position:relative;overflow:hidden}
+  .scale .fill{height:100%;background:linear-gradient(90deg,#ffb4a2,#ff6b6b);width:0%}
+  .marker{position:absolute;top:-6px;width:2px;height:24px;background:#fff;box-shadow:0 0 6px rgba(0,0,0,0.6)}
+  .scale-labels{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--muted)}
+  .temp-values{display:flex;gap:12px;align-items:center;margin-top:10px}
+  .temp-current{font-weight:700;font-size:18px}
 
-  table{width:100%;border-collapse:collapse;margin-top:10px;color:var(--page-text);background:transparent}
-  th,td{padding:8px;border:1px solid var(--table-border);text-align:left;font-size:13px;vertical-align:top}
-  th{background:var(--panel-contrast);width:36%;font-weight:700}
+  /* charts */
+  .charts{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
+  canvas{width:100% !important; height:200px !important; display:block}
 
-  .warning{background: linear-gradient(90deg, rgba(255,80,80,0.12), rgba(255,80,80,0.06)); border-left:5px solid var(--bad); padding:10px; border-radius:8px; color:var(--page-text)}
-  .no-warning{background: linear-gradient(90deg, rgba(60,180,100,0.06), rgba(60,180,100,0.03)); border-left:5px solid var(--ok); padding:10px; border-radius:8px; color:var(--ok)}
+  /* map */
+  #map{height:160px;border-radius:10px;margin-top:10px;border:1px solid var(--border)}
 
-  #map{height:180px;border-radius:8px;margin-top:8px;border:1px solid var(--map-border)}
-  .row{display:flex;gap:10px;align-items:center}
-  .progress{height:12px;background:var(--panel-contrast);border-radius:99px;overflow:hidden;width:160px}
-  .progress > i{display:block;height:100%;background:linear-gradient(90deg,#4fc3f7,#0288d1);width:0%}
-  .toggle{cursor:pointer;padding:6px;border-radius:8px;border:1px solid var(--panel-contrast);background:var(--card-bg)}
-  .hidden{display:none}
-  code{background:var(--code-bg);padding:2px 6px;border-radius:6px}
-  .small-muted {font-size:12px;color:var(--muted)}
+  /* footer actions */
+  .action-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .btn{padding:8px 10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600}
+
+  /* avoid horizontal overflow by constraining large inner elements */
+  table{max-width:100%;overflow:hidden}
+  pre,code{white-space:pre-wrap;word-break:break-word}
 </style>
 </head>
 <body>
-  <div class="wrap" id="pageRoot" role="application">
+  <div class="wrap">
     <header>
       <div>
-        <h1>🌤 Aerospace Park — Weather Dashboard</h1>
-        <div class="subtitle">Open-Meteo forecasts • IMD advisory (via imd.json). Default: dark mode.</div>
+        <h1>🌤 Aerospace Park — Weather</h1>
+        <div class="subtitle">Dark by default • Tap the moon icon to switch</div>
       </div>
 
-      <div class="controls" aria-hidden="false">
-        <select id="preset" title="Quick presets">
-          <option value="">Preset — Aerospace Park (default)</option>
-          <option data-lat="12.9896" data-lon="77.6387">Aerospace Park, Bangalore</option>
-          <option data-lat="12.9716" data-lon="77.5946">Bengaluru (city)</option>
-          <option data-lat="19.0760" data-lon="72.8777">Mumbai</option>
-          <option data-lat="28.7041" data-lon="77.1025">New Delhi</option>
+      <div class="controls" role="group" aria-label="controls">
+        <select id="preset" title="Quick places">
+          <option value="">Choose neighborhood</option>
+          <option data-lat="12.9896" data-lon="77.6387">Aerospace Park</option>
+          <option data-lat="12.9352" data-lon="77.6245">Koramangala</option>
+          <option data-lat="13.0358" data-lon="77.5970">Hebbal</option>
+          <option data-lat="12.9699" data-lon="77.7499">Whitefield</option>
+          <option data-lat="12.8386" data-lon="77.6771">Electronic City</option>
         </select>
-
-        <input id="searchBox" placeholder="Search place (city or area)" aria-label="Search place" />
+        <input id="searchBox" placeholder="Search any city / place worldwide" />
         <button id="searchBtn">Search</button>
-        <button id="downloadBtn" class="toggle" title="Download dashboard PNG">📷 Snapshot</button>
-        <button id="themeBtn" class="toggle" title="Toggle dark/light">🌓</button>
+        <button id="themeBtn" class="toggle">🌓</button>
       </div>
     </header>
 
-    <main class="grid" style="margin-top:14px">
-      <!-- Left -->
+    <main class="grid">
+      <!-- left: data -->
       <section>
-        <div id="dashboardCard" class="card" aria-live="polite">
-          <div class="summary" id="topSummary">
-            <div class="icon" id="weatherIcon">☀️</div>
-            <div class="text">
-              <div id="headline" style="font-weight:700;font-size:16px">Loading…</div>
-              <div style="display:flex;gap:10px;align-items:center;margin-top:8px">
-                <div class="small">Rain probability (next 1–3 hrs)</div>
-                <div style="display:flex;gap:8px;align-items:center;flex:1">
-                  <div class="progress" aria-hidden="true"><i id="probFill"></i></div>
-                  <div id="probText" class="small muted" style="min-width:56px;text-align:right">—%</div>
-                </div>
-              </div>
-              <div id="subnote" class="small muted" style="margin-top:8px"></div>
+        <div id="summaryCard" class="card" aria-live="polite">
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <div class="small">Location</div>
+              <div id="locName" style="font-weight:700">Aerospace Park, Bengaluru</div>
+            </div>
+            <div style="text-align:right">
+              <div class="small">Last updated</div>
+              <div id="lastFetched" class="small muted">—</div>
             </div>
           </div>
 
+          <!-- current / min-max -->
+          <div class="temp-values">
+            <div>
+              <div class="small">Current</div>
+              <div id="currentTemp" class="temp-current">-- °C</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div class="small">High / Low</div>
+              <div id="hiLo" class="small-muted">H: -- °C • L: -- °C</div>
+            </div>
+          </div>
+
+          <div class="temp-bar" aria-hidden="false">
+            <div class="small">Temperature scale</div>
+            <div class="scale" id="tempScale" style="margin-top:8px">
+              <div class="fill" id="tempFill" style="width:40%"></div>
+              <div class="marker" id="tempMarker" style="left:40%"></div>
+            </div>
+            <div class="scale-labels">
+              <div id="minLabel" class="small muted">Min</div>
+              <div id="midLabel" class="small muted">Now</div>
+              <div id="maxLabel" class="small muted">Max</div>
+            </div>
+          </div>
+
+          <!-- charts -->
           <div class="charts">
-            <div class="card" style="padding:10px;border-radius:10px">
-              <div style="font-weight:700;margin-bottom:6px">Temperature (°C)</div>
-              <canvas id="tempChart" aria-label="Temperature chart"></canvas>
+            <div class="card" style="padding:10px">
+              <div style="font-weight:700">Temperature (next 12 hours)</div>
+              <canvas id="tempChart"></canvas>
             </div>
 
-            <div class="card" style="padding:10px;border-radius:10px">
-              <div style="font-weight:700;margin-bottom:6px">Precipitation Probability (%)</div>
-              <canvas id="precipChart" aria-label="Precip probability chart"></canvas>
+            <div class="card" style="padding:10px">
+              <div style="font-weight:700">Precipitation probability (%)</div>
+              <canvas id="precipChart"></canvas>
             </div>
           </div>
 
-          <div style="margin-top:12px">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <div style="font-weight:700">Open-Meteo — Next 6 hours</div>
-              <div id="lastFetched" class="small-muted">Last: —</div>
-            </div>
-            <div id="tableWrap" style="margin-top:8px"></div>
-            <div id="sparkWrap" style="margin-top:10px" class="small-muted"></div>
+          <div class="action-row">
+            <button id="downloadBtn" class="btn">Download snapshot</button>
+            <button id="refreshBtn" class="btn" style="background:#2e7d32">Refresh</button>
           </div>
         </div>
 
         <div class="card" style="margin-top:12px">
           <div style="font-weight:700">Map</div>
           <div id="map"></div>
-          <div class="small-muted" style="margin-top:8px">Click map to center marker. Drag marker to update location.</div>
         </div>
       </section>
 
-      <!-- Right -->
+      <!-- right: removed IMD card per request; keep a small placeholder for future -->
       <aside>
-        <div class="card hidden" id="imdCard">
-          <div style="font-weight:700">IMD Advisory</div>
-          <div id="imdBox" style="margin-top:8px"></div>
-          <div id="imdNote" class="small-muted" style="margin-top:8px"></div>
-        </div>
-
-        <div class="card" style="margin-top:12px">
-          <div style="font-weight:700">Actions</div>
-          <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-            <button id="refreshBtn">Refresh now</button>
-            <div class="small-muted" style="margin-left:auto">Auto-refresh every 10m</div>
+        <div class="card">
+          <div style="font-weight:700">Info</div>
+          <div class="small muted" style="margin-top:8px">
+            Use the presets or search for any place worldwide. The dashboard uses Open-Meteo (free, no key) for forecasts.
           </div>
         </div>
       </aside>
@@ -186,213 +169,204 @@
   </div>
 
 <script>
-/* ---------- Config & helpers ---------- */
-const DEFAULT = { name: "Aerospace Park, Bangalore", lat: 12.9896, lon: 77.6387 };
+/* ---------- helpers and config ---------- */
+const DEFAULT = { name: "Aerospace Park, Bengaluru", lat: 12.9896, lon: 77.6387 };
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const GEO = "https://geocoding-api.open-meteo.com/v1/search?name=";
-let current = {...DEFAULT};
 const el = id => document.getElementById(id);
-function escapeHtml(s){return (s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function nowLocale(ts){ try { const d = new Date(ts); return d.toLocaleString(); } catch(e){ return ts; } }
 
-/* ---------- Theme: default dark, toggle persists ---------- */
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function nowISO(){ return new Date().toISOString(); }
+
+/* ---------- theme toggle: default dark ---------- */
 const root = document.documentElement;
 const themeBtn = el('themeBtn');
-const savedTheme = localStorage.getItem('theme');
-if(savedTheme === 'light') root.setAttribute('data-theme','light'); else root.setAttribute('data-theme','dark');
-themeBtn.addEventListener('click', ()=> {
+const saved = localStorage.getItem('theme');
+if(saved === 'light') root.setAttribute('data-theme','light'); else root.setAttribute('data-theme','dark');
+themeBtn.addEventListener('click', ()=>{
   if(root.getAttribute('data-theme') === 'dark'){ root.setAttribute('data-theme','light'); localStorage.setItem('theme','light'); }
   else { root.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
 });
 
-/* ---------- Charts ---------- */
-const tempCtx = el('tempChart').getContext('2d');
-const precipCtx = el('precipChart').getContext('2d');
-const tempChart = new Chart(tempCtx, {
-  type:'line',
-  data:{labels:[], datasets:[{label:'Temp °C', data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.12)', tension:0.3, fill:true}]},
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-});
-const precipChart = new Chart(precipCtx, {
-  type:'bar',
-  data:{labels:[], datasets:[{label:'Rain %', data:[], backgroundColor:'rgba(69,170,242,0.7)'}]},
-  options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}
-});
-
-/* ---------- Map (Leaflet) ---------- */
+/* ---------- map ---------- */
 const map = L.map('map', {center:[DEFAULT.lat, DEFAULT.lon], zoom:13, attributionControl:false});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 const marker = L.marker([DEFAULT.lat, DEFAULT.lon], {draggable:true}).addTo(map).bindPopup(DEFAULT.name).openPopup();
-marker.on('dragend', function(){ const p = marker.getLatLng(); current.lat = p.lat; current.lon = p.lng; loadAll(current.lat, current.lon, `Lat:${p.lat.toFixed(4)}, Lon:${p.lng.toFixed(4)}`); });
-map.on('click', e => { marker.setLatLng(e.latlng); map.panTo(e.latlng); current.lat = e.latlng.lat; current.lon = e.latlng.lng; loadAll(current.lat, current.lon, `Lat:${current.lat.toFixed(4)}, Lon:${current.lon.toFixed(4)}`); });
+marker.on('dragend', ()=>{ const p = marker.getLatLng(); loadAll(p.lat, p.lng, `Lat:${p.lat.toFixed(4)}, Lon:${p.lng.toFixed(4)}`); });
+map.on('click', e => { marker.setLatLng(e.latlng); map.setView(e.latlng); loadAll(e.latlng.lat, e.latlng.lng, `Lat:${e.latlng.lat.toFixed(4)}, Lon:${e.latlng.lng.toFixed(4)}`); });
 
-/* ---------- Fetch functions ---------- */
+/* ---------- charts (Chart.js) ---------- */
+const tempCtx = el('tempChart').getContext('2d');
+const precipCtx = el('precipChart').getContext('2d');
+
+const tempChart = new Chart(tempCtx, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Temp °C', data: [], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.12)', tension:0.25, pointRadius:4 }]},
+  options: {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ display:false },
+      tooltip:{ enabled:true },
+    },
+    scales:{ y:{ beginAtZero:false } }
+  },
+  plugins: [{
+    id: 'pivots-annotator',
+    afterDatasetsDraw(chart){
+      // annotate local minima/maxima (pivots) with small labels
+      const meta = chart.getDatasetMeta(0);
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = '12px Inter, Arial';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      const data = chart.data.datasets[0].data;
+      for(let i=1; i<data.length-1; i++){
+        const prev = data[i-1], cur = data[i], next = data[i+1];
+        // local max
+        if(cur > prev && cur > next && (cur - Math.max(prev,next)) >= 0.5){
+          const pt = meta.data[i].getCenterPoint();
+          // draw small tag
+          ctx.fillStyle = 'rgba(255,90,90,0.95)';
+          ctx.fillRect(pt.x-22, pt.y-30, 44, 18);
+          ctx.fillStyle = '#000';
+          ctx.fillText(cur.toFixed(1) + '°', pt.x, pt.y-17);
+        }
+        // local min
+        if(cur < prev && cur < next && (Math.min(prev,next) - cur) >= 0.5){
+          const pt = meta.data[i].getCenterPoint();
+          ctx.fillStyle = 'rgba(90,160,255,0.95)';
+          ctx.fillRect(pt.x-22, pt.y+8, 44, 18);
+          ctx.fillStyle = '#000';
+          ctx.fillText(cur.toFixed(1) + '°', pt.x, pt.y+22);
+        }
+      }
+      ctx.restore();
+    }
+  }]
+});
+
+const precipChart = new Chart(precipCtx, {
+  type:'bar',
+  data:{ labels: [], datasets:[{ label:'Rain %', data:[], backgroundColor:'rgba(69,170,242,0.75)' }] },
+  options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:100}} }
+});
+
+/* ---------- fetch Open-Meteo ---------- */
 async function fetchOpenMeteo(lat, lon){
   const params = new URLSearchParams({
     latitude: lat, longitude: lon,
     hourly: 'temperature_2m,precipitation,precipitation_probability,windspeed_10m',
-    daily: 'sunrise,sunset',
+    daily:'temperature_2m_max,temperature_2m_min',
     timezone: 'auto'
   });
   const url = OPEN_METEO + '?' + params.toString();
   const r = await fetch(url);
-  if(!r.ok) throw new Error('Open-Meteo error ' + r.status);
+  if(!r.ok) throw new Error('Open-Meteo ' + r.status);
   return r.json();
 }
-async function loadIMDJson(){
-  try {
-    const r = await fetch('./imd.json?_=' + Date.now());
-    if(!r.ok) return null;
-    return r.json();
-  } catch(e){ return null; }
-}
 
-/* ---------- Advisory heading extraction ---------- */
-function makeHeading(sentence){
-  if(!sentence || typeof sentence !== 'string') return 'Advisory';
-  // prefer splitting at colon or dash if present
-  let s = sentence.trim();
-  const parts = s.split(/[:\-—]/);
-  if(parts.length>1 && parts[0].trim().length>3) return parts[0].trim().slice(0,60);
-  const words = s.split(/\s+/).slice(0,4).join(' ');
-  return words.length > 40 ? words.slice(0,37)+'...' : words;
-}
-
-/* ---------- Render advisory table & hide when empty ---------- */
-function renderIMDTable(imdData){
-  const card = el('imdCard'); const box = el('imdBox');
-  if(!imdData || !imdData.imd_bengaluru){ card.classList.add('hidden'); return; }
-  const warnings = Array.isArray(imdData.imd_bengaluru.warnings) ? imdData.imd_bengaluru.warnings.filter(Boolean) : [];
-  if(warnings.length === 0){ card.classList.add('hidden'); return; }
-  let html = '<table aria-label="IMD advisory table"><tbody>';
-  warnings.forEach(w => {
-    const heading = makeHeading(w);
-    html += `<tr><th>${escapeHtml(heading)}</th><td>${escapeHtml(w)}</td></tr>`;
-  });
-  html += '</tbody></table>';
-  box.innerHTML = html;
-  el('imdNote').innerText = `Source: IMD via imd.json • Updated: ${imdData.fetched_at || '—'}`;
-  card.classList.remove('hidden');
-}
-
-/* ---------- Render forecast and charts ---------- */
-function renderTable(om){
-  const times = om.hourly?.time || [];
-  const temps = om.hourly?.temperature_2m || [];
-  const prec = om.hourly?.precipitation || [];
-  const prob = om.hourly?.precipitation_probability || [];
-  const wind = om.hourly?.windspeed_10m || [];
-  const rows = Math.min(6, times.length);
-  if(rows===0){ el('tableWrap').innerText='No forecast data.'; return; }
-  let html = '<table aria-label="Forecast table"><thead><tr><th style="width:36%">Time</th><th>Temp</th><th>Rain mm</th><th>Rain %</th><th>Wind m/s</th></tr></thead><tbody>';
-  for(let i=0;i<rows;i++){
-    html += `<tr><td>${escapeHtml(times[i])}</td><td>${temps[i] ?? '—'}</td><td>${prec[i] ?? '—'}</td><td>${prob[i] ?? '—'}</td><td>${wind[i] ?? '—'}</td></tr>`;
-  }
-  html += '</tbody></table>';
-  el('tableWrap').innerHTML = html;
-}
-function updateCharts(om){
-  const labels = (om.hourly?.time || []).slice(0,12).map(t => t.replace('T',' '));
-  const temps = (om.hourly?.temperature_2m || []).slice(0,12);
-  const probs = (om.hourly?.precipitation_probability || []).slice(0,12).map(v=>Number(v||0));
-  tempChart.data.labels = labels; tempChart.data.datasets[0].data = temps; tempChart.update();
-  precipChart.data.labels = labels; precipChart.data.datasets[0].data = probs; precipChart.update();
-}
-function computeProbSummary(om){
-  const probs = om.hourly?.precipitation_probability || [];
-  const n = Math.min(3, probs.length);
-  if(n===0) return {avg:0,n:0};
-  let s=0; for(let i=0;i<n;i++) s+=Number(probs[i]||0);
-  return {avg: Math.round(s/n), n};
-}
-
-/* ---------- Main loader ---------- */
-async function loadAll(lat=current.lat, lon=current.lon, pretty=current.name){
-  try {
-    el('headline').innerText = `Loading data for ${pretty}…`;
-    const [omPromise, imdPromise] = [fetchOpenMeteo(lat, lon).catch(e=>null), loadIMDJson().catch(e=>null)];
-    const [omVal, imdVal] = await Promise.all([omPromise, imdPromise]);
-
-    if(omVal){
-      renderTable(omVal); updateCharts(omVal);
-      const {avg,n} = computeProbSummary(omVal);
-      el('probFill').style.width = avg + '%'; el('probText').innerText = avg + '%';
-      let headline = 'No rain expected in next ' + n + ' hr' + (n>1?'s':'');
-      let icon='☀️';
-      if(avg>=60){ headline='High chance of rain'; icon='🌧️'; }
-      else if(avg>=30){ headline='Moderate chance of showers'; icon='⛅'; }
-      else if(avg>0){ headline='Low chance of rain'; icon='🌤️'; }
-      el('headline').innerText = headline; el('weatherIcon').innerText = icon;
-      el('subnote').innerText = `Precip prob averaged over next ${n} hour${n>1?'s':''}.`;
-      el('lastFetched').innerText = 'Last: ' + (imdVal?.fetched_at ?? new Date().toISOString());
-      marker.setLatLng([lat,lon]); marker.bindPopup(pretty).openPopup(); map.setView([lat,lon],13);
-    } else {
-      el('headline').innerText = 'No forecast available';
-      el('tableWrap').innerText = 'Forecast fetch failed.';
-    }
-
-    renderIMDTable(imdVal);
-    if(omVal?.hourly?.temperature_2m){
-      const temps = omVal.hourly.temperature_2m.slice(0,12);
-      const avgTemp = Math.round(temps.reduce((a,b)=>a+(b||0),0)/temps.length);
-      el('sparkWrap').innerText = `Avg (next 12 hrs): ${avgTemp} °C • Times shown in API timezone`;
-    } else el('sparkWrap').innerText = '';
-    current = {name: pretty, lat, lon};
-  } catch(e){
-    console.error(e);
-    el('headline').innerText = 'Error loading data';
-    el('imdBox').innerText = 'Error loading advisory';
-  }
-}
-
-/* ---------- Geocode (search) ---------- */
+/* ---------- geocode ---------- */
 async function geocode(q){
   const r = await fetch(GEO + encodeURIComponent(q) + '&count=5&language=en&format=json');
   if(!r.ok) return null;
-  const j = await r.json();
-  return j.results && j.results.length ? j.results[0] : null;
+  const j = await r.json(); return j.results && j.results.length ? j.results[0] : null;
 }
 
-/* ---------- Events ---------- */
-el('searchBtn').addEventListener('click', async ()=>{
-  const q = el('searchBox').value.trim(); if(!q) return alert('Type place name');
-  const res = await geocode(q); if(!res) return alert('No place found');
-  const pretty = `${res.name}${res.admin1? ', '+res.admin1 : ''}${res.country? ', '+res.country : ''}`;
-  await loadAll(res.latitude, res.longitude, pretty);
+/* ---------- UI updates: temp scale marker ---------- */
+function updateTempScale(min, cur, max){
+  const fill = el('tempFill');
+  const marker = el('tempMarker');
+  const minLabel = el('minLabel'), maxLabel = el('maxLabel'), midLabel = el('midLabel');
+  // avoid division by zero
+  if(max <= min){ fill.style.width = '50%'; marker.style.left = '50%'; minLabel.innerText = min + ' °C'; maxLabel.innerText = max + ' °C'; midLabel.innerText = cur + ' °C'; return; }
+  const pct = ( (cur - min) / (max - min) ) * 100;
+  const bounded = Math.max(0, Math.min(100, pct));
+  fill.style.width = bounded + '%';
+  marker.style.left = bounded + '%';
+  minLabel.innerText = min + ' °C';
+  maxLabel.innerText = max + ' °C';
+  midLabel.innerText = cur + ' °C';
+  el('currentTemp').innerText = cur + ' °C';
+  el('hiLo').innerText = `H: ${max} °C • L: ${min} °C`;
+}
+
+/* ---------- main load ---------- */
+async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, pretty=DEFAULT.name){
+  try{
+    el('locName').innerText = pretty;
+    el('lastFetched').innerText = 'Loading…';
+    const om = await fetchOpenMeteo(lat, lon).catch(()=>null);
+    if(!om){ el('lastFetched').innerText = 'Failed'; return; }
+    el('lastFetched').innerText = (om?.generationtime_ms) ? new Date().toLocaleString() : nowISO();
+
+    // determine current temp: use hourly[0] as nearest
+    const times = om.hourly.time || [];
+    const temps = om.hourly.temperature_2m || [];
+    const probs = om.hourly.precipitation_probability || [];
+    const n = Math.min(12, temps.length);
+    const labels = times.slice(0,n).map(t=>t.replace('T',' '));
+    const tempData = temps.slice(0,n).map(v=>Number(v.toFixed(1)));
+    const probData = probs.slice(0,n).map(v=>Math.round(v));
+    // set charts
+    tempChart.data.labels = labels; tempChart.data.datasets[0].data = tempData; tempChart.update();
+    precipChart.data.labels = labels; precipChart.data.datasets[0].data = probData; precipChart.update();
+
+    // current temperature: take current hour (index 0)
+    const curTemp = tempData.length ? Math.round(tempData[0]) : '--';
+    // find daily min and max from daily if available, fallback to min/max of slice
+    let dayMin = om.daily?.temperature_2m_min ? Math.round(om.daily.temperature_2m_min[0]) : Math.min(...tempData.map(v=>Math.round(v)));
+    let dayMax = om.daily?.temperature_2m_max ? Math.round(om.daily.temperature_2m_max[0]) : Math.max(...tempData.map(v=>Math.round(v)));
+    if(!Number.isFinite(dayMin)) dayMin = Math.min(...tempData);
+    if(!Number.isFinite(dayMax)) dayMax = Math.max(...tempData);
+
+    // update scale
+    updateTempScale(Math.round(dayMin), curTemp, Math.round(dayMax));
+
+    // move marker on map
+    marker.setLatLng([lat,lon]); marker.bindPopup(pretty).openPopup(); map.setView([lat,lon],13);
+
+  } catch(e){
+    console.error(e);
+    el('lastFetched').innerText = 'Error';
+  }
+}
+
+/* ---------- events ---------- */
+el('refreshBtn').addEventListener('click', ()=> loadAll());
+el('downloadBtn').addEventListener('click', async ()=>{
+  const node = el('summaryCard');
+  el('downloadBtn').disabled = true; el('downloadBtn').innerText = 'Preparing...';
+  try {
+    const canvas = await html2canvas(node, {scale:2, backgroundColor: null});
+    canvas.toBlob(b=>{
+      const url = URL.createObjectURL(b);
+      const a = document.createElement('a'); a.href = url; a.download = `weather-${(new Date()).toISOString().slice(0,19)}.png`; a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  } catch(e){ alert('Snapshot failed'); }
+  finally{ el('downloadBtn').disabled = false; el('downloadBtn').innerText = 'Download snapshot'; }
 });
 
 el('preset').addEventListener('change', async function(){
   const opt = this.selectedOptions[0]; if(!opt || !opt.dataset.lat) return;
   const lat = Number(opt.dataset.lat), lon = Number(opt.dataset.lon), pretty = opt.textContent;
-  await loadAll(lat, lon, pretty);
+  loadAll(lat, lon, pretty);
 });
 
-el('refreshBtn').addEventListener('click', ()=> loadAll(current.lat, current.lon, current.name));
-
-/* ---------- Download (html2canvas) ---------- */
-el('downloadBtn').addEventListener('click', async ()=>{
-  const node = el('dashboardCard');
-  el('downloadBtn').disabled = true; el('downloadBtn').innerText = 'Preparing...';
-  try {
-    const canvas = await html2canvas(node, {scale:2, backgroundColor: null});
-    canvas.toBlob((blob)=>{
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url;
-      a.download = `weather-${(new Date()).toISOString().slice(0,19)}.png`;
-      a.click(); URL.revokeObjectURL(url);
-    }, 'image/png');
-  } catch(e){
-    alert('Snapshot not supported in this browser.');
-  } finally {
-    el('downloadBtn').disabled = false; el('downloadBtn').innerText = '📷 Snapshot';
-  }
+el('searchBtn').addEventListener('click', async ()=>{
+  const q = el('searchBox').value.trim(); if(!q) return alert('Type a place name');
+  const res = await geocode(q);
+  if(!res) return alert('Place not found');
+  const pretty = `${res.name}${res.admin1? ', '+res.admin1:''}${res.country? ', '+res.country:''}`;
+  loadAll(res.latitude, res.longitude, pretty);
 });
 
-/* ---------- Init ---------- */
-(async function init(){
-  await loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name);
-  setInterval(()=> loadAll(current.lat, current.lon, current.name), 10*60*1000);
-})();
+/* ---------- init ---------- */
+loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name);
+
+// auto-refresh every 10 minutes
+setInterval(()=> loadAll(), 10*60*1000);
 </script>
 </body>
 </html>
