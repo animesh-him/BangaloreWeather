@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Aerospace Park Weather Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #fafafa; }
+    h1 { color: #b22222; }
+    h2 { margin-top: 30px; color: #333; }
+    .box { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 0 8px rgba(0,0,0,0.1); }
+    table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 6px; text-align: center; }
+    th { background: #eee; }
+    .warning { background: #ffe0e0; border-left: 5px solid #b22222; padding: 8px; margin: 6px 0; }
+  </style>
+</head>
+<body>
+  <h1>🌤 Aerospace Park, Bengaluru – Weather & Advisory</h1>
+  <p>Data source: <b>Open-Meteo</b> (forecast) + <b>IMD Bengaluru</b> (advisory). Auto-updates hourly.</p>
+
+  <div id="last-update" class="box">Loading latest data…</div>
+
+  <div id="forecast" class="box">
+    <h2>Open-Meteo Forecast (Next 6 Hours)</h2>
+    <div id="forecast-table">Loading…</div>
+  </div>
+
+  <div id="imd" class="box">
+    <h2>IMD Bengaluru Advisory</h2>
+    <div id="imd-text">Loading…</div>
+  </div>
+
+  <script>
+    async function loadData() {
+      try {
+        const resp = await fetch('./imd.json?_=' + Date.now()); // cache-buster
+        if (!resp.ok) throw new Error("Failed to fetch imd.json");
+        const data = await resp.json();
+
+        // Show timestamp
+        document.getElementById("last-update").innerHTML =
+          "<b>Last updated:</b> " + (data.fetched_at || "N/A");
+
+        // ---- Open-Meteo Forecast ----
+        let om = data.open_meteo || {};
+        if (om.hourly && om.hourly.time) {
+          let table = "<table><tr><th>Time</th><th>Temp (°C)</th><th>Rain (mm)</th><th>Rain %</th><th>Wind (km/h)</th></tr>";
+          for (let i = 0; i < 6; i++) {
+            table += "<tr>";
+            table += "<td>" + om.hourly.time[i] + "</td>";
+            table += "<td>" + om.hourly.temperature_2m[i] + "</td>";
+            table += "<td>" + om.hourly.precipitation[i] + "</td>";
+            table += "<td>" + om.hourly.precipitation_probability[i] + "</td>";
+            table += "<td>" + om.hourly.windspeed_10m[i] + "</td>";
+            table += "</tr>";
+          }
+          table += "</table>";
+          document.getElementById("forecast-table").innerHTML = table;
+        } else {
+          document.getElementById("forecast-table").innerText = "No forecast data.";
+        }
+
+        // ---- IMD Advisory ----
+        let imd = data.imd_bengaluru || {};
+        let html = "";
+        if (imd.warnings && imd.warnings.length) {
+          imd.warnings.forEach(w => {
+            html += "<div class='warning'>⚠️ " + w + "</div>";
+          });
+        }
+        if (imd.extracted_text) {
+          html += "<p><b>Extracted text:</b></p><pre style='white-space:pre-wrap;font-size:14px;'>" 
+                  + imd.extracted_text.slice(0,1000) + "..." + "</pre>";
+        }
+        if (!html) html = "No advisory available.";
+        document.getElementById("imd-text").innerHTML = html;
+
+      } catch (e) {
+        document.getElementById("last-update").innerText = "Error loading imd.json: " + e;
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>
