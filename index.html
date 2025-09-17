@@ -3,16 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Aerospace Park — Weather (mobile-friendly)</title>
+<title>Aerospace Park — Weather (fixed)</title>
 
-<!-- libs -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
 <style>
-  /* dark-by-default variables; light available with data-theme="light" */
   :root{
     --bg-from:#071017; --bg-to:#081424; --text:#e6eef6; --muted:#9aa6b2;
     --card:#0f1720; --accent:#ff6b6b; --ok:#66e08b; --panel:rgba(255,255,255,0.03);
@@ -22,28 +20,19 @@
     --bg-from:#f7f9fc; --bg-to:#f4f6f9; --text:#07101a; --muted:#556070;
     --card:#ffffff; --accent:#b22222; --ok:#2e7d32; --panel:rgba(0,0,0,0.02); --border:rgba(16,24,40,0.05);
   }
-
   html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));font-family:Inter,system-ui,Roboto,Arial;color:var(--text);-webkit-font-smoothing:antialiased}
   .wrap{max-width:980px;margin:10px auto;padding:10px}
   header{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   h1{margin:0;font-size:20px;color:var(--accent)}
   .subtitle{font-size:13px;color:var(--muted)}
-
-  /* controls row */
   .controls{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   select,input,button{padding:8px 10px;border-radius:10px;border:1px solid var(--panel);background:var(--card);color:var(--text);font-size:13px}
-  .toggle{cursor:pointer}
-
-  /* make layout single-column on narrow screens */
   .grid{display:grid;grid-template-columns:1fr 360px;gap:14px;margin-top:12px}
   @media(max-width:900px){ .grid{grid-template-columns:1fr} }
-
   .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,0.35);color:var(--text);overflow:hidden}
   .row{display:flex;gap:10px;align-items:center}
   .small{font-size:13px;color:var(--muted)}
   .muted{color:var(--muted)}
-
-  /* temp summary bar */
   .temp-bar {margin-top:10px;background:linear-gradient(90deg,var(--panel),transparent);padding:12px;border-radius:10px}
   .scale{height:12px;background:rgba(255,255,255,0.04);border-radius:999px;position:relative;overflow:hidden}
   .scale .fill{height:100%;background:linear-gradient(90deg,#ffb4a2,#ff6b6b);width:0%}
@@ -51,21 +40,14 @@
   .scale-labels{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;color:var(--muted)}
   .temp-values{display:flex;gap:12px;align-items:center;margin-top:10px}
   .temp-current{font-weight:700;font-size:18px}
-
-  /* charts */
   .charts{display:grid;grid-template-columns:1fr;gap:10px;margin-top:12px}
   canvas{width:100% !important; height:200px !important; display:block}
-
-  /* map */
   #map{height:160px;border-radius:10px;margin-top:10px;border:1px solid var(--border)}
-
-  /* footer actions */
   .action-row{display:flex;gap:8px;align-items:center;margin-top:12px;flex-wrap:wrap}
   .btn{padding:8px 10px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-weight:600}
-
-  /* avoid horizontal overflow by constraining large inner elements */
   table{max-width:100%;overflow:hidden}
   pre,code{white-space:pre-wrap;word-break:break-word}
+  .summary-text{margin-top:8px;font-size:14px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -73,7 +55,7 @@
     <header>
       <div>
         <h1>🌤 Aerospace Park — Weather</h1>
-        <div class="subtitle">Dark by default • Tap the moon icon to switch</div>
+        <div class="subtitle">Default dark • fixed current-temp & map centering</div>
       </div>
 
       <div class="controls" role="group" aria-label="controls">
@@ -87,12 +69,11 @@
         </select>
         <input id="searchBox" placeholder="Search any city / place worldwide" />
         <button id="searchBtn">Search</button>
-        <button id="themeBtn" class="toggle">🌓</button>
+        <button id="themeBtn">🌓</button>
       </div>
     </header>
 
     <main class="grid">
-      <!-- left: data -->
       <section>
         <div id="summaryCard" class="card" aria-live="polite">
           <div class="row" style="justify-content:space-between">
@@ -106,7 +87,6 @@
             </div>
           </div>
 
-          <!-- current / min-max -->
           <div class="temp-values">
             <div>
               <div class="small">Current</div>
@@ -114,7 +94,7 @@
             </div>
             <div style="margin-left:auto;text-align:right">
               <div class="small">High / Low</div>
-              <div id="hiLo" class="small-muted">H: -- °C • L: -- °C</div>
+              <div id="hiLo" class="small muted">H: -- °C • L: -- °C</div>
             </div>
           </div>
 
@@ -129,9 +109,9 @@
               <div id="midLabel" class="small muted">Now</div>
               <div id="maxLabel" class="small muted">Max</div>
             </div>
+            <div id="summarySentence" class="summary-text"></div>
           </div>
 
-          <!-- charts -->
           <div class="charts">
             <div class="card" style="padding:10px">
               <div style="font-weight:700">Temperature (next 12 hours)</div>
@@ -156,12 +136,11 @@
         </div>
       </section>
 
-      <!-- right: removed IMD card per request; keep a small placeholder for future -->
       <aside>
         <div class="card">
           <div style="font-weight:700">Info</div>
           <div class="small muted" style="margin-top:8px">
-            Use the presets or search for any place worldwide. The dashboard uses Open-Meteo (free, no key) for forecasts.
+            Use the presets or search any place worldwide. Data from Open-Meteo (free).
           </div>
         </div>
       </aside>
@@ -169,16 +148,12 @@
   </div>
 
 <script>
-/* ---------- helpers and config ---------- */
 const DEFAULT = { name: "Aerospace Park, Bengaluru", lat: 12.9896, lon: 77.6387 };
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const GEO = "https://geocoding-api.open-meteo.com/v1/search?name=";
 const el = id => document.getElementById(id);
 
-function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function nowISO(){ return new Date().toISOString(); }
-
-/* ---------- theme toggle: default dark ---------- */
+/* theme */
 const root = document.documentElement;
 const themeBtn = el('themeBtn');
 const saved = localStorage.getItem('theme');
@@ -188,76 +163,74 @@ themeBtn.addEventListener('click', ()=>{
   else { root.setAttribute('data-theme','dark'); localStorage.setItem('theme','dark'); }
 });
 
-/* ---------- map ---------- */
+/* map */
 const map = L.map('map', {center:[DEFAULT.lat, DEFAULT.lon], zoom:13, attributionControl:false});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-const marker = L.marker([DEFAULT.lat, DEFAULT.lon], {draggable:true}).addTo(map).bindPopup(DEFAULT.name).openPopup();
+let marker = L.marker([DEFAULT.lat, DEFAULT.lon], {draggable:true}).addTo(map).bindPopup(DEFAULT.name).openPopup();
 marker.on('dragend', ()=>{ const p = marker.getLatLng(); loadAll(p.lat, p.lng, `Lat:${p.lat.toFixed(4)}, Lon:${p.lng.toFixed(4)}`); });
 map.on('click', e => { marker.setLatLng(e.latlng); map.setView(e.latlng); loadAll(e.latlng.lat, e.latlng.lng, `Lat:${e.latlng.lat.toFixed(4)}, Lon:${e.latlng.lng.toFixed(4)}`); });
 
-/* ---------- charts (Chart.js) ---------- */
-const tempCtx = el('tempChart').getContext('2d');
-const precipCtx = el('precipChart').getContext('2d');
-
+/* charts */
+const tempCtx = el('tempChart').getContext('2d'), precipCtx = el('precipChart').getContext('2d');
 const tempChart = new Chart(tempCtx, {
   type: 'line',
-  data: { labels: [], datasets: [{ label: 'Temp °C', data: [], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.12)', tension:0.25, pointRadius:4 }]},
-  options: {
-    responsive:true, maintainAspectRatio:false,
-    plugins:{
-      legend:{ display:false },
-      tooltip:{ enabled:true },
-    },
-    scales:{ y:{ beginAtZero:false } }
-  },
-  plugins: [{
-    id: 'pivots-annotator',
+  data: { labels:[], datasets:[{ label:'Temp °C', data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.12)', tension:0.25, pointRadius:4 }]},
+  options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false}} },
+  plugins:[{
+    id:'pivot-annot',
     afterDatasetsDraw(chart){
-      // annotate local minima/maxima (pivots) with small labels
       const meta = chart.getDatasetMeta(0);
       const ctx = chart.ctx;
       ctx.save();
-      ctx.font = '12px Inter, Arial';
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
+      ctx.font='12px Inter, Arial'; ctx.textAlign='center';
       const data = chart.data.datasets[0].data;
-      for(let i=1; i<data.length-1; i++){
-        const prev = data[i-1], cur = data[i], next = data[i+1];
-        // local max
-        if(cur > prev && cur > next && (cur - Math.max(prev,next)) >= 0.5){
+      for(let i=1;i<data.length-1;i++){
+        const prev=data[i-1], cur=data[i], next=data[i+1];
+        if(cur>prev && cur>next && (cur - Math.max(prev,next))>=0.5){
           const pt = meta.data[i].getCenterPoint();
-          // draw small tag
-          ctx.fillStyle = 'rgba(255,90,90,0.95)';
-          ctx.fillRect(pt.x-22, pt.y-30, 44, 18);
-          ctx.fillStyle = '#000';
-          ctx.fillText(cur.toFixed(1) + '°', pt.x, pt.y-17);
+          ctx.fillStyle='rgba(255,90,90,0.95)';
+          ctx.fillRect(pt.x-22, pt.y-30, 44,18); ctx.fillStyle='#000'; ctx.fillText(cur.toFixed(1)+'°', pt.x, pt.y-17);
         }
-        // local min
-        if(cur < prev && cur < next && (Math.min(prev,next) - cur) >= 0.5){
+        if(cur<prev && cur<next && (Math.min(prev,next)-cur)>=0.5){
           const pt = meta.data[i].getCenterPoint();
-          ctx.fillStyle = 'rgba(90,160,255,0.95)';
-          ctx.fillRect(pt.x-22, pt.y+8, 44, 18);
-          ctx.fillStyle = '#000';
-          ctx.fillText(cur.toFixed(1) + '°', pt.x, pt.y+22);
+          ctx.fillStyle='rgba(90,160,255,0.95)';
+          ctx.fillRect(pt.x-22, pt.y+8,44,18); ctx.fillStyle='#000'; ctx.fillText(cur.toFixed(1)+'°', pt.x, pt.y+22);
         }
       }
       ctx.restore();
     }
   }]
 });
-
 const precipChart = new Chart(precipCtx, {
   type:'bar',
-  data:{ labels: [], datasets:[{ label:'Rain %', data:[], backgroundColor:'rgba(69,170,242,0.75)' }] },
+  data:{ labels:[], datasets:[{ label:'Rain %', data:[], backgroundColor:'rgba(69,170,242,0.75)' }]},
   options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:100}} }
 });
 
-/* ---------- fetch Open-Meteo ---------- */
+/* helpers */
+function nearestIndexToNow(times){
+  if(!times || !times.length) return 0;
+  const now = Date.now();
+  let best = 0, bestDiff = Infinity;
+  for(let i=0;i<times.length;i++){
+    const t = Date.parse(times[i]);
+    if(isNaN(t)) continue;
+    const d = Math.abs(t - now);
+    if(d < bestDiff){ best = i; bestDiff = d; }
+  }
+  return best;
+}
+
+function formatTimeLabel(iso){
+  try{ return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); } catch(e){ return iso; }
+}
+
+/* open-meteo fetch */
 async function fetchOpenMeteo(lat, lon){
   const params = new URLSearchParams({
     latitude: lat, longitude: lon,
     hourly: 'temperature_2m,precipitation,precipitation_probability,windspeed_10m',
-    daily:'temperature_2m_max,temperature_2m_min',
+    daily: 'temperature_2m_max,temperature_2m_min',
     timezone: 'auto'
   });
   const url = OPEN_METEO + '?' + params.toString();
@@ -266,86 +239,109 @@ async function fetchOpenMeteo(lat, lon){
   return r.json();
 }
 
-/* ---------- geocode ---------- */
+/* geocode */
 async function geocode(q){
   const r = await fetch(GEO + encodeURIComponent(q) + '&count=5&language=en&format=json');
   if(!r.ok) return null;
   const j = await r.json(); return j.results && j.results.length ? j.results[0] : null;
 }
 
-/* ---------- UI updates: temp scale marker ---------- */
+/* update temp scale */
 function updateTempScale(min, cur, max){
-  const fill = el('tempFill');
-  const marker = el('tempMarker');
-  const minLabel = el('minLabel'), maxLabel = el('maxLabel'), midLabel = el('midLabel');
-  // avoid division by zero
-  if(max <= min){ fill.style.width = '50%'; marker.style.left = '50%'; minLabel.innerText = min + ' °C'; maxLabel.innerText = max + ' °C'; midLabel.innerText = cur + ' °C'; return; }
-  const pct = ( (cur - min) / (max - min) ) * 100;
+  const fill = el('tempFill'), marker = el('tempMarker'), minLabel = el('minLabel'), maxLabel = el('maxLabel'), midLabel = el('midLabel');
+  if(max <= min || isNaN(min) || isNaN(max) || isNaN(cur)){
+    fill.style.width='50%'; marker.style.left='50%';
+    minLabel.innerText = min + '°'; maxLabel.innerText = max + '°'; midLabel.innerText = cur + '°';
+    return;
+  }
+  const pct = ((cur - min) / (max - min)) * 100;
   const bounded = Math.max(0, Math.min(100, pct));
   fill.style.width = bounded + '%';
   marker.style.left = bounded + '%';
-  minLabel.innerText = min + ' °C';
-  maxLabel.innerText = max + ' °C';
-  midLabel.innerText = cur + ' °C';
-  el('currentTemp').innerText = cur + ' °C';
-  el('hiLo').innerText = `H: ${max} °C • L: ${min} °C`;
+  minLabel.innerText = min + '°'; maxLabel.innerText = max + '°'; midLabel.innerText = cur + '°';
+  el('currentTemp').innerText = cur + '°'; el('hiLo').innerText = `H: ${max}° • L: ${min}°`;
 }
 
-/* ---------- main load ---------- */
+/* build short summary for next 6 hours */
+function shortForecastSentence(times, probData){
+  if(!probData || !probData.length) return '';
+  const next6 = probData.slice(0,6);
+  const avg = Math.round(next6.reduce((a,b)=>a+b,0)/next6.length);
+  if(avg >= 60) return `High chance of rain in next 6 hours (${avg}% avg rain prob).`;
+  if(avg >= 30) return `Moderate chance of showers (${avg}% avg).`;
+  if(avg > 0) return `Low chance of rain (${avg}% avg).`;
+  return 'No rain expected in next 6 hours.';
+}
+
+/* loadAll - corrected */
 async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, pretty=DEFAULT.name){
   try{
     el('locName').innerText = pretty;
     el('lastFetched').innerText = 'Loading…';
     const om = await fetchOpenMeteo(lat, lon).catch(()=>null);
     if(!om){ el('lastFetched').innerText = 'Failed'; return; }
-    el('lastFetched').innerText = (om?.generationtime_ms) ? new Date().toLocaleString() : nowISO();
+    el('lastFetched').innerText = new Date().toLocaleString();
 
-    // determine current temp: use hourly[0] as nearest
-    const times = om.hourly.time || [];
-    const temps = om.hourly.temperature_2m || [];
-    const probs = om.hourly.precipitation_probability || [];
-    const n = Math.min(12, temps.length);
-    const labels = times.slice(0,n).map(t=>t.replace('T',' '));
-    const tempData = temps.slice(0,n).map(v=>Number(v.toFixed(1)));
-    const probData = probs.slice(0,n).map(v=>Math.round(v));
-    // set charts
-    tempChart.data.labels = labels; tempChart.data.datasets[0].data = tempData; tempChart.update();
-    precipChart.data.labels = labels; precipChart.data.datasets[0].data = probData; precipChart.update();
+    // hourly arrays
+    const times = om.hourly?.time || [];
+    const temps = (om.hourly?.temperature_2m || []).map(v => Number((v).toFixed(1)));
+    const probs = (om.hourly?.precipitation_probability || []).map(v => Math.round(v));
+    const n = Math.min(12, temps.length, times.length);
 
-    // current temperature: take current hour (index 0)
-    const curTemp = tempData.length ? Math.round(tempData[0]) : '--';
-    // find daily min and max from daily if available, fallback to min/max of slice
-    let dayMin = om.daily?.temperature_2m_min ? Math.round(om.daily.temperature_2m_min[0]) : Math.min(...tempData.map(v=>Math.round(v)));
-    let dayMax = om.daily?.temperature_2m_max ? Math.round(om.daily.temperature_2m_max[0]) : Math.max(...tempData.map(v=>Math.round(v)));
-    if(!Number.isFinite(dayMin)) dayMin = Math.min(...tempData);
-    if(!Number.isFinite(dayMax)) dayMax = Math.max(...tempData);
+    // pick nearest index to now
+    const nowIdx = nearestIndexToNow(times);
+    const curTemp = Number.isFinite(temps[nowIdx]) ? Math.round(temps[nowIdx]) : (temps[0] ? Math.round(temps[0]) : '--');
 
-    // update scale
-    updateTempScale(Math.round(dayMin), curTemp, Math.round(dayMax));
+    // prepare chart data (times labels starting at nowIdx)
+    const sliceLabels = times.slice(nowIdx, nowIdx + n).map(t => formatTimeLabel(t));
+    const sliceTemps = temps.slice(nowIdx, nowIdx + n);
+    const sliceProbs = probs.slice(nowIdx, nowIdx + n);
 
-    // move marker on map
-    marker.setLatLng([lat,lon]); marker.bindPopup(pretty).openPopup(); map.setView([lat,lon],13);
+    tempChart.data.labels = sliceLabels; tempChart.data.datasets[0].data = sliceTemps; tempChart.update();
+    precipChart.data.labels = sliceLabels; precipChart.data.datasets[0].data = sliceProbs; precipChart.update();
+
+    // daily min/max prefer daily fields if available
+    let dayMin = om.daily?.temperature_2m_min ? Math.round(om.daily.temperature_2m_min[0]) : Math.min(...sliceTemps.map(v=>Math.round(v)));
+    let dayMax = om.daily?.temperature_2m_max ? Math.round(om.daily.temperature_2m_max[0]) : Math.max(...sliceTemps.map(v=>Math.round(v)));
+    if(!Number.isFinite(dayMin)) dayMin = Math.min(...sliceTemps);
+    if(!Number.isFinite(dayMax)) dayMax = Math.max(...sliceTemps);
+
+    updateTempScale(dayMin, curTemp, dayMax);
+
+    // summary sentence for next 6 hours starting from nowIdx
+    const next6 = probs.slice(nowIdx, nowIdx + 6);
+    el('summarySentence').innerText = shortForecastSentence(times, next6);
+
+    // update map marker and view reliably
+    if(marker){
+      marker.setLatLng([lat,lon]);
+    } else {
+      marker = L.marker([lat,lon], {draggable:true}).addTo(map);
+      marker.on('dragend', ()=>{ const p = marker.getLatLng(); loadAll(p.lat, p.lng, `Lat:${p.lat.toFixed(4)}, Lon:${p.lng.toFixed(4)}`); });
+    }
+    marker.bindPopup(pretty).openPopup();
+    // guarantee map updates on mobile: setView then invalidateSize
+    map.setView([lat,lon],13);
+    setTimeout(()=> map.invalidateSize(), 300);
 
   } catch(e){
-    console.error(e);
-    el('lastFetched').innerText = 'Error';
+    console.error(e); el('lastFetched').innerText = 'Error';
   }
 }
 
-/* ---------- events ---------- */
+/* events */
 el('refreshBtn').addEventListener('click', ()=> loadAll());
 el('downloadBtn').addEventListener('click', async ()=>{
   const node = el('summaryCard');
   el('downloadBtn').disabled = true; el('downloadBtn').innerText = 'Preparing...';
-  try {
-    const canvas = await html2canvas(node, {scale:2, backgroundColor: null});
+  try{
+    const canvas = await html2canvas(node, {scale:2, backgroundColor:null});
     canvas.toBlob(b=>{
       const url = URL.createObjectURL(b);
       const a = document.createElement('a'); a.href = url; a.download = `weather-${(new Date()).toISOString().slice(0,19)}.png`; a.click();
       URL.revokeObjectURL(url);
     }, 'image/png');
-  } catch(e){ alert('Snapshot failed'); }
-  finally{ el('downloadBtn').disabled = false; el('downloadBtn').innerText = 'Download snapshot'; }
+  }catch(e){ alert('Snapshot failed'); } finally { el('downloadBtn').disabled=false; el('downloadBtn').innerText='Download snapshot'; }
 });
 
 el('preset').addEventListener('change', async function(){
@@ -356,16 +352,13 @@ el('preset').addEventListener('change', async function(){
 
 el('searchBtn').addEventListener('click', async ()=>{
   const q = el('searchBox').value.trim(); if(!q) return alert('Type a place name');
-  const res = await geocode(q);
-  if(!res) return alert('Place not found');
+  const res = await geocode(q); if(!res) return alert('Place not found');
   const pretty = `${res.name}${res.admin1? ', '+res.admin1:''}${res.country? ', '+res.country:''}`;
   loadAll(res.latitude, res.longitude, pretty);
 });
 
-/* ---------- init ---------- */
+/* init */
 loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name);
-
-// auto-refresh every 10 minutes
 setInterval(()=> loadAll(), 10*60*1000);
 </script>
 </body>
