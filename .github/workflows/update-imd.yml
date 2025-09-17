@@ -1,36 +1,41 @@
-name: Update IMD JSON (Bengaluru-safe)
+name: Update IMD + OpenMeteo JSON
+
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 * * * *'    # hourly (UTC) - change if you want less frequent
   workflow_dispatch: {}
+
 permissions:
   contents: write
+
 jobs:
   fetch-and-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           persist-credentials: true
-      - uses: actions/setup-python@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
-      - run: |
+          python-version: '3.11'
+
+      - name: Install deps & fetch/run
+        run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
-      - name: Fetch IMD (Bengaluru) and write imd.json
-        env:
-          IMD_SOURCE_URL: ${{ vars.IMD_SOURCE_URL || 'https://mausam.imd.gov.in/api/nowcast_district_api.php' }}
-          IMD_DISTRICT_NAME: Bengaluru
-          IMD_STATE_NAME: Karnataka
+          python scripts/fetch_imd_combined.py
+
+      - name: Commit imd.json if changed
         run: |
-          python scripts/fetch_imd_bengaluru.py
-      - run: git config user.name "github-actions[bot]" && git config user.email "github-actions[bot]@users.noreply.github.com"
-      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           if [ -n "$(git status --porcelain)" ]; then
-            git add imd.json
-            git commit -m "update imd.json"
-            git push
+            git add imd.json || true
+            git commit -m "chore: update imd.json (automated) [skip ci]" || true
+            git push origin HEAD
           else
-            echo "No changes"
+            echo "No changes to commit"
           fi
