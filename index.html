@@ -60,21 +60,25 @@
           document.getElementById("forecast-table").innerText = "No forecast data.";
         }
 
-        // ---- IMD Advisory ----
-        let imd = data.imd_bengaluru || {};
-        let html = "";
-        if (imd.warnings && imd.warnings.length) {
-          imd.warnings.forEach(w => {
-            html += "<div class='warning'>⚠️ " + w + "</div>";
-          });
-        }
-        if (imd.extracted_text) {
-          html += "<p><b>Extracted text:</b></p><pre style='white-space:pre-wrap;font-size:14px;'>" 
-                  + imd.extracted_text.slice(0,1000) + "..." + "</pre>";
-        }
-        if (!html) html = "No advisory available.";
-        document.getElementById("imd-text").innerHTML = html;
+        // improved IMD display: prefer warnings; show trimmed extracted_text only if no warnings
+let imd = data.imd_bengaluru || {};
+let html = "";
+if (Array.isArray(imd.warnings) && imd.warnings.length) {
+  imd.warnings.forEach(w => {
+    html += "<div class='warning'>⚠️ " + escapeHtml(w) + "</div>";
+  });
+} else if (imd.extracted_text) {
+  // Show a trimmed, cleaned version of extracted_text when no short warnings found
+  const cleaned = imd.extracted_text.replace(/\s{2,}/g, ' ').trim();
+  html += "<p><b>Extracted text (trimmed):</b></p><pre style='white-space:pre-wrap;font-size:14px;'>" 
+        + escapeHtml(cleaned.slice(0,1200)) + (cleaned.length>1200 ? "..." : "") + "</pre>";
+} else {
+  html = "No advisory available.";
+}
+document.getElementById("imd-text").innerHTML = html;
 
+// small helper (put this near top of your script if not present)
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]; }); }
       } catch (e) {
         document.getElementById("last-update").innerText = "Error loading imd.json: " + e;
       }
