@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
-fetch_imd_combined.py — improved extraction for IMD Bengaluru page
-Writes imd.json containing open_meteo + imd_bengaluru with 'warnings' array of good sentences.
+fetch_imd_combined.py -- improved IMD extraction + open-meteo fetch.
+Writes imd.json only when content changes.
 """
+
 import os, json, time, re
 from datetime import datetime, timezone
 import requests
@@ -17,6 +18,8 @@ HEADERS = {"User-Agent":"github-actions-imd-fetcher/1.0 (+https://github.com/)",
 MAX_RETRIES = 3
 TIMEOUT = 20
 
+KEYWORDS = ["warning","watch","nowcast","thunderstorm","thunder","heavy rain","heavy rainfall","alert","advisory","likely","possible","isolated","severe","squall","gust"]
+
 def now_iso():
     return datetime.now(timezone.utc).astimezone().isoformat()
 
@@ -27,6 +30,7 @@ def fetch_with_retries(url, params=None):
             r = requests.get(url, params=params, headers=HEADERS, timeout=TIMEOUT)
             if 200 <= r.status_code < 300:
                 return r
+            # do not retry unauthorized or too-many-requests aggressively
             if r.status_code in (401, 429):
                 raise requests.HTTPError(f"HTTP {r.status_code} for {url}")
             if 500 <= r.status_code < 600:
@@ -43,113 +47,135 @@ def fetch_open_meteo(lat, lon):
     params = {
         "latitude": lat, "longitude": lon,
         "hourly": "temperature_2m,precipitation,precipitation_probability,windspeed_10m",
-        "daily": "sunrise,sunset", "timezone": "auto"
+        "daily": "sunrise,sunset",
+        "timezone": "auto"
     }
     r = fetch_with_retries(OPEN_METEO_URL, params=params)
     return r.json()
 
-def extract_main_text(html):
+def extract_visible_paragraphs(html):
     soup = BeautifulSoup(html, "html.parser")
-    # remove noisy tags
-    for s in soup(["script","style","nav","header","footer","form","noscript","iframe","aside"]):
-        s.decompose()
-    # prefer main/article/section
-    for sel in ("main", "article", "section", "#content", ".content"):
-        el = soup.select_one(sel)
+    # Remove noisy elements
+    for sel in soup(["script","style","nav","header","footer","form","noscript","iframe","aside","svg","canvas"]):
+        sel.decompose()
+    # Prefer main/article/section
+    for selector in ("main", "article", "section", "#content", ".content"):
+        el = soup.select_one(selector)
         if el:
-            text = el.get_text("\n", strip=True)
-            if len(text) > 80:
-                return text
-    # fallback: combine all <p> into paragraphs
-    paras = [p.get_text(" ", strip=True) for p in soup.find_all("p") if p.get_text(strip=True)]
-    if paras:
-        # join with double newline to denote paragraphs
-        return "\n\n".join(paras)
-    # ultimate fallback: body text
-    body = soup.body
-    return body.get_text(" ", strip=True) if body else ""
+            # gather paragraphs within
+            paras = [p.get_text(" ", strip=True) for p in el.find_all(["p","div","li","h2","h3"]) if p.get_text(strip=True)]
+            if paras:
+                return paras
+    # fallback: use all paragraphs in body
+    paras = [p.get_text(" ", strip=True) for p in soup.find_all(["p","div","li","h2","h3"]) if p.get_text(strip=True)]
+    return paras
 
-def pick_warning_paragraphs(text):
-    if not text:
-        return []
-    # split into paragraphs by two newlines or by long lines
-    paras = [p.strip() for p in re.split(r'\n{2,}|\r\n{2,}', text) if p.strip()]
-    # keywords to look for
-    keys = ["warning","watch","nowcast","thunderstorm","heavy rain","heavy rainfall","alert","advisory","likely","possible","isolated","severe"]
-    found = []
-    for p in paras:
-        low = p.lower()
-        # ignore short nav-like lines (very short or all caps single words)
-        if len(p) < 40:
+def is_nav_like(paragraph):
+    # Reject if too short
+    if len(paragraph) < 40:
+        return True
+    words = paragraph.split()
+    # If paragraph contains many short words (likely navigation or headings) and short total words, reject
+    short_words = sum(1 for w in words if len(w) <= 3)
+    if len(words) < 40 and (short_words / max(1, len(words))) > 0.55:
+        return True
+    # If it's mostly single-word uppercase tokens, reject
+    tokens = re.findall(r"[A-Za-z]{1,}", paragraph)
+    if tokens and all(len(t) <= 4 for t in tokens) and len(tokens) < 30:
+        return True
+    return False
+
+def contains_keywords(paragraph):
+    low = paragraph.lower()
+    return any(k in low for k in KEYWORDS)
+
+def pick_warnings(paragraphs):
+    candidates = []
+    # First pass: paragraphs with keywords and that are not nav-like
+    for p in paragraphs:
+        p = re.sub(r'\s+', ' ', p).strip()
+        if is_nav_like(p):
             continue
-        # ignore paragraphs that are lists of short words (navigation)
-        words = p.split()
-        short_words_ratio = sum(1 for w in words if len(w)<=4) / max(1, len(words))
-        if short_words_ratio > 0.6 and len(words) < 40:
-            continue
-        # if any keyword present, accept paragraph
-        if any(k in low for k in keys):
-            # collapse whitespace
-            cleaned = re.sub(r'\s+', ' ', p).strip()
-            found.append(cleaned)
-    # if nothing found, fallback: try sentences search
-    if not found:
-        # split into sentences and pick those with keywords and decent length
-        sents = re.split(r'(?<=[.?!])\s+', text)
-        for s in sents:
-            if len(s) < 30: continue
-            low = s.lower()
-            if any(k in low for k in keys):
-                cleaned = re.sub(r'\s+', ' ', s).strip()
+        if contains_keywords(p) and len(p) >= 40:
+            candidates.append(p)
+    # If we found candidate paragraphs, return them (dedup)
+    if candidates:
+        seen = set(); out=[]
+        for c in candidates:
+            if c in seen: continue
+            seen.add(c); out.append(c)
+            if len(out) >= 8: break
+        return out
+    # Second pass: try sentence-level search for keywords
+    text = "\n\n".join(paragraphs)
+    sentences = re.split(r'(?<=[.?!])\s+', text)
+    found=[]
+    for s in sentences:
+        s = s.strip()
+        if len(s) < 40: continue
+        if contains_keywords(s):
+            cleaned = re.sub(r'\s+', ' ', s)
+            if cleaned not in found:
                 found.append(cleaned)
-    # deduplicate preserve order and limit
-    seen = set(); unique = []
-    for t in found:
-        if t in seen: continue
-        seen.add(t); unique.append(t)
-        if len(unique) >= 8: break
-    return unique
+        if len(found) >= 8:
+            break
+    return found
+
+def load_existing():
+    if not os.path.exists(OUT_FILE):
+        return None
+    try:
+        with open(OUT_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 def save_if_changed(payload):
-    try:
-        old = None
-        if os.path.exists(OUT_FILE):
-            with open(OUT_FILE, "r", encoding="utf-8") as f: old = json.load(f)
-        if old is not None and json.dumps(old, sort_keys=True, ensure_ascii=False) == json.dumps(payload, sort_keys=True, ensure_ascii=False):
-            print("No change in imd.json — skipping write.")
-            return False
-        with open(OUT_FILE, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False, indent=2)
-        print("Wrote", OUT_FILE)
-        return True
-    except Exception as e:
-        print("Error saving", e); return False
+    existing = load_existing()
+    # compare canonical JSON strings
+    if existing is not None and json.dumps(existing, sort_keys=True, ensure_ascii=False) == json.dumps(payload, sort_keys=True, ensure_ascii=False):
+        print("No change in imd.json — skipping write.")
+        return False
+    with open(OUT_FILE, "w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2)
+    print(f"Wrote {OUT_FILE}")
+    return True
+
+def fetch_imd_bengaluru():
+    r = fetch_with_retries(IMD_BENGALURU_PAGE)
+    html = r.text
+    paras = extract_visible_paragraphs(html)
+    warnings = pick_warnings(paras)
+    # keep a trimmed extracted_text as fallback (first meaningful paragraphs joined)
+    extracted = "\n\n".join(paras[:20])[:20000]
+    return {"source_url": IMD_BENGALURU_PAGE, "warnings": warnings, "extracted_text": extracted}
 
 def main():
-    print("Fetching Open-Meteo and IMD page...")
+    print("Fetching Open-Meteo and IMD Bengaluru page...")
     om = {}
-    try: om = fetch_open_meteo(LAT, LON)
-    except Exception as e: print("Open-Meteo fetch failed:", e)
-    imd_page = {}
     try:
-        r = fetch_with_retries(IMD_BENGALURU_PAGE)
-        html = r.text
-        main_text = extract_main_text(html)
-        warnings = pick_warning_paragraphs(main_text)
-        imd_page = {"source_url": IMD_BENGALURU_PAGE, "warnings": warnings, "extracted_text": main_text[:20000]}
+        om = fetch_open_meteo(LAT, LON)
     except Exception as e:
-        print("IMD page fetch failed:", e)
-        imd_page = {"source_url": IMD_BENGALURU_PAGE, "warnings": [], "extracted_text": ""}
+        print("Open-Meteo fetch failed:", e)
+    imd = {}
+    try:
+        imd = fetch_imd_bengaluru()
+    except Exception as e:
+        print("IMD fetch failed:", e)
+        imd = {"source_url": IMD_BENGALURU_PAGE, "warnings": [], "extracted_text": ""}
 
-    payload = {
+    out = {
         "fetched_at": now_iso(),
         "location": {"name": "Aerospace Park, Bangalore", "latitude": LAT, "longitude": LON},
         "open_meteo": om,
-        "imd_bengaluru": imd_page
+        "imd_bengaluru": imd
     }
-    saved = save_if_changed(payload)
-    if saved: print("imd.json updated.")
-    else: print("No update required.")
+
+    changed = save_if_changed(out)
+    if not changed:
+        print("No commit needed.")
+    else:
+        print("imd.json updated.")
 
 if __name__ == "__main__":
     main()
