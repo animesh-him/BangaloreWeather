@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2025-09-17T22:27:58.749011+00:00",
+  "fetched_at": "2025-09-17T22:40:26.472246+00:00",
   "location": {
     "name": "Aerospace Park, Bangalore",
     "latitude": 12.9896,
@@ -8,7 +8,7 @@
   "open_meteo": {
     "latitude": 13.0,
     "longitude": 77.625,
-    "generationtime_ms": 0.055789947509765625,
+    "generationtime_ms": 0.08666515350341797,
     "utc_offset_seconds": 19800,
     "timezone": "Asia/Kolkata",
     "timezone_abbreviation": "GMT+5:30",
@@ -909,9 +909,9 @@
   },
   "imd_bengaluru": {
     "source_url": "https://mausam.imd.gov.in/bengaluru/",
-    "extracted_text": "Warnings\nSubdivision Wise\nDistrict Wise\nNowcast\nDistrict Wise\nStation Wise\nWeather Observations\nDaily\nAWS\nForecast\nCity Forecast\nBengaluru Districts\nDistrict Forecast (Kannada)\nDistrict Forecast (English)\nNational Forecast\nExtended Range Forecast\nImpact Based Forecast\nHighway Forecast\nTourism Forecast\nTwin City\nMangaluru",
     "warnings": [
       "Warnings Subdivision Wise District Wise Nowcast District Wise Station Wise Weather Observations Daily AWS Forecast City Forecast Bengaluru Districts District Forecast (Kannada) District Forecast (English) National Forecast Extended Range Forecast Impact Based Forecast Highway Forecast Tourism Forecast Twin City Mangaluru"
-    ]
+    ],
+    "extracted_text": "Warnings\nSubdivision Wise\nDistrict Wise\nNowcast\nDistrict Wise\nStation Wise\nWeather Observations\nDaily\nAWS\nForecast\nCity Forecast\nBengaluru Districts\nDistrict Forecast (Kannada)\nDistrict Forecast (English)\nNational Forecast\nExtended Range Forecast\nImpact Based Forecast\nHighway Forecast\nTourism Forecast\nTwin City\nMangaluru"
   }
 }
