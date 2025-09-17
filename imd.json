@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2025-09-17T22:40:26.472246+00:00",
+  "fetched_at": "2025-09-17T23:15:50.239428+00:00",
   "location": {
     "name": "Aerospace Park, Bangalore",
     "latitude": 12.9896,
@@ -8,7 +8,7 @@
   "open_meteo": {
     "latitude": 13.0,
     "longitude": 77.625,
-    "generationtime_ms": 0.08666515350341797,
+    "generationtime_ms": 0.04863739013671875,
     "utc_offset_seconds": 19800,
     "timezone": "Asia/Kolkata",
     "timezone_abbreviation": "GMT+5:30",
@@ -910,8 +910,8 @@
   "imd_bengaluru": {
     "source_url": "https://mausam.imd.gov.in/bengaluru/",
     "warnings": [
-      "Warnings Subdivision Wise District Wise Nowcast District Wise Station Wise Weather Observations Daily AWS Forecast City Forecast Bengaluru Districts District Forecast (Kannada) District Forecast (English) National Forecast Extended Range Forecast Impact Based Forecast Highway Forecast Tourism Forecast Twin City Mangaluru"
+      "Warnings Subdivision Wise District Wise Nowcast District Wise Station Wise Weather Observations Daily AWS"
     ],
-    "extracted_text": "Warnings\nSubdivision Wise\nDistrict Wise\nNowcast\nDistrict Wise\nStation Wise\nWeather Observations\nDaily\nAWS\nForecast\nCity Forecast\nBengaluru Districts\nDistrict Forecast (Kannada)\nDistrict Forecast (English)\nNational Forecast\nExtended Range Forecast\nImpact Based Forecast\nHighway Forecast\nTourism Forecast\nTwin City\nMangaluru"
+    "extracted_text": "Warnings Subdivision Wise District Wise Nowcast District Wise Station Wise Weather Observations Daily AWS\n\nWarnings Subdivision Wise District Wise\n\nWarnings\n\nSubdivision Wise District Wise\n\nNowcast District Wise Station Wise\n\nNowcast\n\nDistrict Wise Station Wise\n\nWeather Observations Daily AWS\n\nWeather Observations\n\nDaily AWS\n\nForecast City Forecast Bengaluru Districts District Forecast (Kannada) District Forecast (English) National Forecast Extended Range Forecast Impact Based Forecast Highway Forecast Tourism Forecast Twin City Mangaluru\n\nForecast City Forecast Bengaluru Districts District Forecast (Kannada) District Forecast (English) National Forecast Extended Range Forecast Impact Based Forecast Highway Forecast Tourism Forecast Twin City Mangaluru\n\nCity Forecast\n\nBengaluru Districts\n\nDistrict Forecast (Kannada)\n\nDistrict Forecast (English)\n\nNational Forecast\n\nExtended Range Forecast\n\nImpact Based Forecast\n\nHighway Forecast"
   }
 }
