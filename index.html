@@ -49,7 +49,7 @@
   .temp-left .label,.temp-right .label{font-size:12px;color:var(--muted)}
   .temp-center{font-size:40px;font-weight:800;line-height:1;text-align:center;min-width:120px}
   .summary-block{display:flex;align-items:center;gap:10px;min-width:220px}
-  .summary-icon{font-size:36px}
+  .summary-icon{width:56px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
   .summary-text{font-weight:800;color:var(--text);font-size:14px;max-width:320px}
 
   /* hourly icons row */
@@ -57,7 +57,7 @@
   .hourly-tile{min-width:72px;padding:8px;border-radius:8px;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
   .hourly-tile.selected{outline:2px solid rgba(255,255,255,0.06);transform:translateY(-4px)}
   .hourly-time{font-size:12px;color:var(--muted)}
-  .hourly-icon{font-size:20px;margin-top:4px}
+  .hourly-icon{height:28px;display:flex;align-items:center;justify-content:center;margin-top:4px}
   .hourly-temp{font-size:13px;margin-top:4px;font-weight:700}
 
   /* charts and days */
@@ -66,6 +66,7 @@
   .day-cards{display:flex;gap:8px;margin-top:12px;overflow:auto;padding-bottom:6px}
   .day-card{min-width:94px;padding:8px;border-radius:10px;text-align:center;cursor:pointer;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);border:1px solid rgba(255,255,255,0.02)}
   .day-card.selected{outline:2px solid rgba(255,255,255,0.06);transform:translateY(-4px)}
+  .day-icon{height:36px;display:flex;align-items:center;justify-content:center}
 
   #map{height:150px;border-radius:10px;margin-top:12px;border:1px solid var(--border)}
   .coord{font-size:12px;color:var(--muted);margin-top:6px}
@@ -121,12 +122,18 @@
             </div>
 
             <div class="summary-block" style="margin-left:auto">
-              <div class="summary-icon" id="dayIcon">☀️</div>
+              <div class="summary-icon" id="dayIcon" aria-hidden="true"></div>
               <div class="summary-text" id="daySummary">Loading summary…</div>
             </div>
           </div>
 
           <div class="hourly-row" id="hourlyRow" aria-live="polite" role="list"></div>
+
+          <!-- 5-day overview moved here (immediately under header area) -->
+          <div style="margin-top:12px">
+            <div style="font-weight:700">5-Day Overview</div>
+            <div class="day-cards" id="dayCards" aria-live="polite"></div>
+          </div>
         </div>
 
         <div class="card" style="margin-top:12px">
@@ -140,9 +147,7 @@
         </div>
 
         <div class="card" style="margin-top:12px">
-          <div style="font-weight:700">5-Day Overview</div>
-          <div class="day-cards" id="dayCards" aria-live="polite"></div>
-          <div id="dayDetail" style="margin-top:12px"></div>
+          <div id="dayDetail" style="margin-top:6px"></div>
         </div>
       </section>
 
@@ -217,15 +222,33 @@ const tempCtx = el('tempChart').getContext('2d'), precipCtx = el('precipChart').
 const tempChart = new Chart(tempCtx, { type:'line', data:{labels:[], datasets:[{label:'Temp', data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.12)', tension:0.25, pointRadius:4}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}} });
 const precipChart = new Chart(precipCtx, { type:'bar', data:{labels:[], datasets:[{label:'Rain %', data:[], backgroundColor:'rgba(69,170,242,0.75)'}]}, options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true,max:100}},plugins:{legend:{display:false}}} });
 
-/* ---------- weathercode mapping (basic emoji) ---------- */
-const weatherMap = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',61:'🌧️',63:'🌧️',65:'⛈️',80:'🌦️',81:'🌧️',82:'⛈️',95:'⛈️',96:'⛈️'};
-function wcIcon(code){ return weatherMap[code] || '❓' }
+/* ---------- SVG icons mapped to weathercode groups ---------- */
+function svgIcon(type){
+  // simple clean monochrome SVGs that look good in dark or light (fill uses currentColor)
+  if(type === 'sun') return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="currentColor"/></svg>`;
+  if(type === 'cloud') return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M17 18H7a4 4 0 010-8 6 6 0 0111.3 1.3A4 4 0 0117 18z" fill="currentColor"/></svg>`;
+  if(type === 'partly') return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none"><g fill="currentColor"><circle cx="8" cy="8" r="3"/><path d="M17 18H7a4 4 0 010-8 6 6 0 0111.3 1.3A4 4 0 0117 18z"/></g></svg>`;
+  if(type === 'rain') return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none"><g fill="currentColor"><path d="M17 18H7a4 4 0 010-8 6 6 0 0111.3 1.3A4 4 0 0117 18z"/><path d="M8 19l-1 2M12 19l-1 2M16 19l-1 2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+  if(type === 'storm') return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none"><g fill="currentColor"><path d="M17 18H7a4 4 0 010-8 6 6 0 0111.3 1.3A4 4 0 0117 18z"/><path d="M11 13l-2 4h3l-1 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;  
+  return `<svg width="44" height="44" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.6" fill="currentColor"/></svg>`;
+}
+function wcToType(code){
+  // group codes to icon types
+  if(code === null || code === undefined) return 'sun';
+  const c = Number(code);
+  if([0].includes(c)) return 'sun';
+  if([1,2].includes(c)) return 'partly';
+  if([3,45,48].includes(c)) return 'cloud';
+  if([51,53,55,61,63,80,81].includes(c)) return 'rain';
+  if([65,82,95,96].includes(c)) return 'storm';
+  return 'sun';
+}
 
 /* ---------- nearest hourly index ---------- */
 function nearestIndexToNow(times){
   if(!times || !times.length) return 0;
   const now = Date.now(); let best=0,bestDiff=Infinity;
-  for(let i=0;i<times.length;i++){ const t = Date.parse(times[i]); if(isNaN(t)) continue; const d = Math.abs(t-now); if(d<bestDiff){ best=i; bestDiff=d } }
+  for(let i=0;i<times.length;i++){ const t=Date.parse(times[i]); if(isNaN(t)) continue; const d=Math.abs(t-now); if(d<bestDiff){ best=i; bestDiff=d } }
   return best;
 }
 
@@ -242,56 +265,66 @@ async function fetchOpenMeteo(lat, lon){
   return r.json();
 }
 
-/* ---------- render hourly tiles ---------- */
-let selectedHourlyIdx = null;
+/* ---------- render hourly tiles using SVG icons ---------- */
+let selectedHourlyIdx = 0;
 function buildHourlyRow(times, temps, probs, codes){
   const row = el('hourlyRow'); row.innerHTML = '';
   for(let i=0;i<times.length;i++){
     const tile = document.createElement('div'); tile.className='hourly-tile'; tile.tabIndex=0;
     tile.dataset.idx = i;
     const timeLabel = (i===0) ? 'Now' : formatTime(times[i]);
-    tile.innerHTML = `<div class="hourly-time">${timeLabel}</div><div class="hourly-icon">${wcIcon(codes[i])}</div><div class="hourly-temp">${Math.round(temps[i])}°</div><div class="small muted">${probs[i]}%</div>`;
-    tile.addEventListener('click', ()=> { selectHourly(i); });
+    const iconType = wcToType(codes[i]);
+    tile.innerHTML = `<div class="hourly-time">${timeLabel}</div><div class="hourly-icon">${svgIconSmall(iconType)}</div><div class="hourly-temp">${Math.round(temps[i])}°</div><div class="small muted">${probs[i]}%</div>`;
+    tile.addEventListener('click', ()=> selectHourly(i));
     row.appendChild(tile);
   }
-  // auto-select first tile
   selectHourly(0);
+}
+function svgIconSmall(type){
+  // smaller 28px icons consistent with svgIcon
+  if(type==='sun') return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3.5" fill="currentColor"/></svg>`;
+  if(type==='partly') return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><g fill="currentColor"><circle cx="7.5" cy="7.5" r="2.5"/><path d="M16 17H7a3 3 0 010-6 4.5 4.5 0 019 1A3 3 0 0116 17z"/></g></svg>`;
+  if(type==='cloud') return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M17 16H7a3 3 0 010-6 4.5 4.5 0 019 1z" fill="currentColor"/></svg>`;
+  if(type==='rain') return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><g fill="currentColor"><path d="M17 16H7a3 3 0 010-6 4.5 4.5 0 019 1z"/><path d="M8 17l-.8 1.6M12 17l-.8 1.6M16 17l-.8 1.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+  if(type==='storm') return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><g fill="currentColor"><path d="M17 16H7a3 3 0 010-6 4.5 4.5 0 019 1z"/><path d="M11 12l-1 3h2l-1 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></g></svg>`;
+  return `<svg width="28" height="28" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>`;
 }
 function selectHourly(i){
   const tiles = Array.from(document.querySelectorAll('.hourly-tile'));
   tiles.forEach(t=>t.classList.remove('selected'));
   const t = tiles[i]; if(t) t.classList.add('selected');
   selectedHourlyIdx = i;
-  // optionally, we can display a little detail somewhere — we'll scroll the charts to that index by updating tooltips
-  // show a temporary popup by updating dayDetail small text
-  const label = t ? t.querySelector('.hourly-time').innerText : '';
-  const temp = t ? t.querySelector('.hourly-temp').innerText : '';
-  const rain = t ? t.querySelector('.small').innerText : '';
-  el('dayDetail').innerHTML = `<div style="font-weight:700">${label}</div><div class="small muted">${temp} • ${rain}</div>`;
+  // show quick details below in dayDetail
+  const timeText = t ? t.querySelector('.hourly-time').innerText : '';
+  const tempText = t ? t.querySelector('.hourly-temp').innerText : '';
+  const rainText = t ? t.querySelector('.small').innerText : '';
+  el('dayDetail').innerHTML = `<div style="font-weight:700">${timeText}</div><div class="small muted">${tempText} • ${rainText}</div>`;
 }
 
-/* ---------- render 5-day ---------- */
+/* ---------- render 5-day with SVG icons ---------- */
 function renderDays(daily){
   const wrap = el('dayCards'); wrap.innerHTML = '';
   for(let i=0;i<daily.time.length;i++){
     const d = daily.time[i];
-    const icon = wcIcon(daily.weathercode[i]);
+    const type = wcToType(daily.weathercode[i]);
+    const icon = svgIcon(type);
     const hi = Math.round(daily.temperature_2m_max[i]||0), lo = Math.round(daily.temperature_2m_min[i]||0);
     const card = document.createElement('div'); card.className='day-card'; card.dataset.idx = i;
-    card.innerHTML = `<div style="font-weight:700">${new Date(d).toLocaleDateString([], {weekday:'short'})}</div><div style="font-size:22px;margin-top:6px">${icon}</div><div style="margin-top:6px">${hi}° / ${lo}°</div>`;
+    card.innerHTML = `<div style="font-weight:700">${new Date(d).toLocaleDateString([], {weekday:'short'})}</div><div class="day-icon" style="margin-top:6px">${icon}</div><div style="margin-top:6px">${hi}° / ${lo}°</div>`;
     card.addEventListener('click', ()=> { document.querySelectorAll('.day-card').forEach(c=>c.classList.remove('selected')); card.classList.add('selected'); showDayDetail(daily, i); });
     wrap.appendChild(card);
     if(i===0){ card.classList.add('selected'); showDayDetail(daily, 0); }
   }
 }
 function showDayDetail(daily,i){
-  const html = `<div style="display:flex;gap:12px;align-items:center"><div style="font-size:34px">${wcIcon(daily.weathercode[i])}</div><div><div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</div><div class="small muted">${daily.precipitation_sum ? 'Precip: '+Math.round(daily.precipitation_sum[i])+' mm':''}</div><div style="margin-top:8px">High: <b>${Math.round(daily.temperature_2m_max[i])}°</b> • Low: <b>${Math.round(daily.temperature_2m_min[i])}°</b></div></div></div>`;
+  const html = `<div style="display:flex;gap:12px;align-items:center"><div style="font-size:44px">${svgIcon(wcToType(daily.weathercode[i]))}</div><div><div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</div><div class="small muted">${daily.precipitation_sum ? 'Precip: '+Math.round(daily.precipitation_sum[i])+' mm':''}</div><div style="margin-top:8px">High: <b>${Math.round(daily.temperature_2m_max[i])}°</b> • Low: <b>${Math.round(daily.temperature_2m_min[i])}°</b></div></div></div>`;
   el('dayDetail').innerHTML = html;
 }
 
-/* ---------- small utility: set top summary icon + text ---------- */
-function setSummary(icon, text){
-  el('dayIcon').innerText = icon;
+/* ---------- summary area ---------- */
+function setSummaryIconAndText(code, text){
+  const type = wcToType(code);
+  el('dayIcon').innerHTML = svgIcon(type);
   el('daySummary').innerText = text;
 }
 
@@ -300,7 +333,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
   try{
     el('locName').innerText = label;
     centerMap(lat, lon, label);
-    el('lastFetched')?.remove?.(); // not using separate last-fetched element to keep layout compact
+
     const om = await fetchOpenMeteo(lat, lon).catch(()=>null);
     if(!om) return alert('Forecast fetch failed');
 
@@ -310,12 +343,10 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
     const probs = (om.hourly.precipitation_probability || []).map(v=>Math.round(v));
     const codes = (om.hourly.weathercode || []).map(v=>v);
 
-    // find index nearest now
     const nowIdx = nearestIndexToNow(times);
     const count = Math.min(12, Math.max(6, times.length - nowIdx));
     const tTimes = times.slice(nowIdx, nowIdx+count), tTemps = temps.slice(nowIdx, nowIdx+count), tProbs = probs.slice(nowIdx, nowIdx+count), tCodes = codes.slice(nowIdx, nowIdx+count);
 
-    // current = nearest
     const currentTemp = Math.round(temps[nowIdx]||tTemps[0]||0);
     el('currentTemp').innerText = `${currentTemp}°`;
 
@@ -326,7 +357,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
     el('highTemp').innerText = `${high}°`; el('lowTemp').innerText = `${low}°`;
     el('coords').innerText = `Lat: ${lat.toFixed(6)} • Lon: ${lon.toFixed(6)}`;
 
-    // summary (avg next 6h)
+    // summary avg next 6h
     const next6 = probs.slice(nowIdx, nowIdx+6);
     const avg = next6.length ? Math.round(next6.reduce((a,b)=>a+b,0)/next6.length) : 0;
     let summary = '';
@@ -334,9 +365,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
     else if(avg>=30) summary = `Moderate chance of showers (${avg}% avg next 6h)`;
     else if(avg>0) summary = `Low chance of rain (${avg}% avg next 6h)`;
     else summary = `No rain expected in next 6 hours`;
-    // pick icon from nearest hourly code or daily weathercode
-    const icon = wcIcon(codes[nowIdx] || (daily.weathercode ? daily.weathercode[0] : 0));
-    setSummary(icon, summary);
+    setSummaryIconAndText(codes[nowIdx] || (daily.weathercode ? daily.weathercode[0] : 0), summary);
 
     // hourly row
     buildHourlyRow(tTimes, tTemps, tProbs, tCodes);
@@ -379,10 +408,7 @@ el('setCoords').addEventListener('click', ()=>{
   loadAll(lat, lon, `Lat:${lat.toFixed(6)}, Lon:${lon.toFixed(6)}`);
 });
 
-el('myLoc').addEventListener('click', ()=>{
-  if(!navigator.geolocation) return alert('Geolocation not available');
-  navigator.geolocation.getCurrentPosition(p=> loadAll(p.coords.latitude, p.coords.longitude, 'Your location'), ()=> alert('Location permission denied'));
-});
+el('myLoc').addEventListener('click', ()=>{ if(!navigator.geolocation) return alert('Geolocation not available'); navigator.geolocation.getCurrentPosition(p=> loadAll(p.coords.latitude, p.coords.longitude, 'Your location'), ()=> alert('Location permission denied')) });
 
 el('snapshot').addEventListener('click', async ()=>{
   el('snapshot').disabled = true; el('snapshot').innerText = 'Preparing...';
