@@ -1,11 +1,14 @@
 <!doctype html>
 <html lang="en" data-theme="dark">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Weather Forecast</title>
 
-<!-- Leaflet + Chart.js (CDNs) -->
+<!-- Weather Icons CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css"/>
+
+<!-- Leaflet + Chart.js -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -13,53 +16,71 @@
 <style>
   *,*::before,*::after{box-sizing:border-box}
   :root{
-    --bg-from:#061018; --bg-to:#0a1625; --text:#f0f7ff; --muted:#96a3b0;
-    --card:#0f1720; --accent:#ff6b6b; --border:rgba(255,255,255,0.05);
-    --sun:#FFD93D; --cloud-white:#FFFFFF; --cloud-gray:#93A3B6;
-    --rain-light:#6DD5FF; --rain-heavy:#1E90FF; --storm:#D47CFF;
+    --bg-from:#061018; --bg-to:#0a1625; --text:#eef6fb; --muted:#91a3b0;
+    --card:#0f1720; --accent:#ff6b6b; --border:rgba(255,255,255,0.06);
+    --sun:#FFD740; --cloud:#FFFFFF; --cloud-gray:#9aa6b4; --rain-light:#66d6ff; --rain-heavy:#1ea1ff; --storm:#d47cff;
   }
   [data-theme="light"]{
-    --bg-from:#f9fbfd; --bg-to:#f0f4f9; --text:#111; --muted:#444;
-    --card:#fff; --accent:#b22222;
-    --sun:#FFC107; --cloud-white:#ffffff; --cloud-gray:#5d6a75;
-    --rain-light:#4DB7FF; --rain-heavy:#0077E6; --storm:#8b5cf6;
+    --bg-from:#f7fbff; --bg-to:#f1f6fb; --text:#111; --muted:#465563; --card:#ffffff;
+    --sun:#FFC107; --cloud:#ffffff; --cloud-gray:#6e7b86; --rain-light:#4db7ff; --rain-heavy:#0077e6; --storm:#8b5cf6;
   }
 
-  html,body{margin:0;height:100%;font-family:Inter,system-ui,Roboto,Arial;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));color:var(--text)}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));color:var(--text);-webkit-font-smoothing:antialiased}
   .wrap{max-width:980px;margin:12px auto;padding:12px}
   header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  h1{margin:0;font-size:20px;color:var(--accent)}
+  h1{margin:0;font-size:22px;color:var(--accent)}
   .subtitle{font-size:13px;color:var(--muted)}
   .controls{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
   select,input,button{padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px}
-  .mini{padding:5px 8px;font-size:13px}
+  .mini{padding:6px 8px;font-size:13px}
+
   .grid{display:grid;grid-template-columns:1fr 340px;gap:12px;margin-top:12px}
-  @media(max-width:900px){ .grid{grid-template-columns:1fr} }
+  @media(max-width:920px){ .grid{grid-template-columns:1fr} }
 
-  .card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,0.35);margin-bottom:10px}
-  .top-grid{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  .temp-center{font-size:40px;font-weight:800}
-  .summary-text{font-weight:800;color:var(--text);max-width:380px}
+  .card{background:var(--card);border-radius:12px;padding:12px;box-shadow:0 8px 20px rgba(0,0,0,0.35);margin-bottom:12px;overflow:hidden}
+  .small{font-size:13px;color:var(--muted)}
+  .hl{font-weight:700}
 
-  .hourly-row{display:flex;gap:8px;overflow-x:auto;margin-top:10px;padding-bottom:6px}
-  .hourly-tile{min-width:70px;padding:8px;border-radius:8px;text-align:center;background:rgba(255,255,255,0.03);cursor:pointer}
-  .hourly-tile.selected{outline:2px solid rgba(255,255,255,0.12)}
+  .top-grid{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  .temp-block{display:flex;gap:12px;align-items:center}
+  .temp-left,.temp-right{font-size:13px;color:var(--muted);text-align:center}
+  .temp-center{font-size:44px;font-weight:800;text-align:center;min-width:90px}
+  .summary-block{display:flex;gap:12px;align-items:center;margin-left:auto}
+  .summary-icon{width:62px;height:62px;display:flex;align-items:center;justify-content:center}
 
-  .day-cards{display:flex;gap:8px;overflow-x:auto;padding:6px 0;margin-top:10px}
-  .day-card{min-width:92px;padding:8px;border-radius:8px;text-align:center;background:rgba(255,255,255,0.03);cursor:pointer}
-  .day-card.selected{outline:2px solid rgba(255,255,255,0.12)}
+  .hourly-row{display:flex;gap:8px;overflow-x:auto;padding:10px 4px;margin-top:12px}
+  .hourly-tile{min-width:76px;padding:8px;border-radius:10px;text-align:center;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+  .hourly-tile.selected{outline:2px solid rgba(255,255,255,0.08);transform:translateY(-6px)}
 
-  #map{height:140px;border-radius:8px;margin-top:8px}
+  .day-cards{display:flex;gap:8px;overflow-x:auto;padding-top:8px}
+  .day-card{min-width:100px;padding:10px;border-radius:10px;text-align:center;background:rgba(255,255,255,0.02);cursor:pointer}
+  .day-card.selected{outline:2px solid rgba(255,255,255,0.08);transform:translateY(-6px)}
 
-  /* raindrops animation */
-  .drop{position:absolute;width:3px;height:9px;border-radius:2px;opacity:0;animation:fall 0.9s linear infinite}
-  .drop.light{background:var(--rain-light)}
-  .drop.heavy{background:var(--rain-heavy);animation-duration:0.6s}
-  @keyframes fall{0%{transform:translateY(-6px);opacity:0}30%{opacity:1}100%{transform:translateY(36px);opacity:0}}
+  /* ---------- CHARTS: fix height & prevent infinite growth ---------- */
+  /* pin canvas to fixed height so chart cannot grow endlessly */
+  .card canvas { display:block; width:100% !important; height:220px !important; max-height:260px; }
+  /* Chart container overflow hidden to avoid page stretch */
+  .card .chart-container { overflow:hidden; }
 
-  /* keep icons crisp and not boxed */
-  .icon-inline{display:inline-block;vertical-align:middle}
-  .small-muted{font-size:12px;color:var(--muted)}
+  #map{height:160px;border-radius:10px;margin-top:10px;border:1px solid var(--border)}
+
+  /* Weather Icons color mapping */
+  .wi-sun { color: var(--sun); text-shadow: 0 0 8px rgba(255,215,0,0.12); font-size:44px; }
+  .wi-cloud { color: var(--cloud-gray); font-size:36px; }
+  .wi-cloudy { color: var(--cloud-gray); font-size:36px; }
+  .wi-day-sunny-overcast { color: var(--sun); font-size:36px; }
+  .wi-raindrop, .wi-showers { color: var(--rain-light); font-size:28px; }
+  .wi-rain { color: var(--rain-heavy); font-size:28px; }
+  .wi-thunderstorm { color: var(--storm); font-size:36px; }
+
+  .drops { position:relative; width:100%; height:40px; pointer-events:none; overflow:visible }
+  .drops .drop{ position:absolute; width:3px; height:10px; border-radius:2px; animation:fall 0.9s linear infinite; opacity:0.95 }
+  .drops .light{ background:var(--rain-light) }
+  .drops .heavy{ background:var(--rain-heavy); animation-duration:0.6s }
+  @keyframes fall { 0%{ transform:translateY(-8px); opacity:0 } 25%{ opacity:1 } 100%{ transform:translateY(36px); opacity:0 } }
+
+  /* responsive layout fix to avoid horizontal overflow */
+  body, .wrap { overscroll-behavior-x: contain; -webkit-tap-highlight-color: transparent }
 </style>
 </head>
 <body>
@@ -70,7 +91,7 @@
         <div class="subtitle">Hourly • 5-Day • Open-Meteo (free)</div>
       </div>
 
-      <div class="controls">
+      <div class="controls" role="group" aria-label="controls">
         <select id="preset" class="mini" aria-label="Presets">
           <option value="">Presets</option>
           <option data-lat="13.128893" data-lon="77.649531">Aerospace Park</option>
@@ -83,73 +104,94 @@
           <option data-lat="13.1986" data-lon="77.7066">Bengaluru Airport</option>
         </select>
 
-        <input id="searchBox" placeholder="Search city / place" aria-label="Search place"/>
+        <input id="searchBox" placeholder="Search city / place" aria-label="search" />
         <button id="searchBtn" class="mini">Search</button>
         <button id="themeBtn" class="mini" title="Toggle theme">🌓</button>
       </div>
     </header>
 
     <main class="grid" role="main">
-      <!-- Left column -->
+      <!-- LEFT -->
       <section>
-        <div class="card">
+        <div class="card" id="topCard">
           <div class="top-grid">
-            <div>
-              <div class="small-muted">Low</div>
-              <div id="lowTemp" class="temp-center">--°</div>
+            <div class="temp-block">
+              <div class="temp-left">
+                <div class="small">Low</div>
+                <div id="lowTemp" class="hl">--°</div>
+              </div>
+
+              <div>
+                <div class="small">Current</div>
+                <div id="currentTemp" class="temp-center">--°</div>
+              </div>
+
+              <div class="temp-right">
+                <div class="small">High</div>
+                <div id="highTemp" class="hl">--°</div>
+              </div>
             </div>
 
-            <div style="text-align:center">
-              <div class="small-muted">Current</div>
-              <div id="currentTemp" class="temp-center">--°</div>
-            </div>
-
-            <div>
-              <div class="small-muted">High</div>
-              <div id="highTemp" class="temp-center">--°</div>
-            </div>
-
-            <div style="margin-left:auto">
-              <div id="dayIcon" aria-hidden="true"></div>
-              <div class="summary-text" id="daySummary">Loading forecast summary…</div>
+            <div class="summary-block">
+              <div class="summary-icon" id="dayIcon" aria-hidden="true"></div>
+              <div class="summary-text" id="daySummary">Loading summary…</div>
             </div>
           </div>
 
           <div class="hourly-row" id="hourlyRow" aria-live="polite"></div>
 
-          <div>
-            <div style="margin-top:12px;font-weight:700">5-Day Overview</div>
-            <div class="day-cards" id="dayCards" aria-live="polite"></div>
+          <div style="margin-top:12px">
+            <div style="font-weight:700">5-Day Overview</div>
+            <div class="day-cards" id="dayCards"></div>
           </div>
         </div>
 
-        <div class="card"><div style="font-weight:700">Next 12 hours — Temperature</div><canvas id="tempChart"></canvas></div>
-        <div class="card"><div style="font-weight:700">Precipitation probability (%)</div><canvas id="precipChart"></canvas></div>
+        <div class="card chart-container">
+          <div style="font-weight:700">Next 12 hours — Temperature</div>
+          <canvas id="tempChart"></canvas>
+        </div>
+
+        <div class="card chart-container">
+          <div style="font-weight:700">Precipitation probability (%)</div>
+          <canvas id="precipChart"></canvas>
+        </div>
+
         <div class="card" id="dayDetail"></div>
       </section>
 
-      <!-- Right column -->
+      <!-- RIGHT -->
       <aside>
         <div class="card">
           <div style="font-weight:700">Location</div>
           <div id="locName" class="hl">Aerospace Park</div>
-          <div id="coords" class="small-muted">Lat: 13.128893 • Lon: 77.649531</div>
-          <div id="map"></div>
+          <div id="coords" class="small">Lat: 13.128893 • Lon: 77.649531</div>
+
+          <div style="margin-top:10px">
+            <div style="font-weight:700">Map</div>
+            <div id="map"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="font-weight:700">Info</div>
+          <div class="small" style="margin-top:8px">Data: Open-Meteo (free). Icons: Weather Icons CDN. Tap hourly tiles for details. Default location Aerospace Park.</div>
         </div>
       </aside>
     </main>
   </div>
 
 <script>
-/* ---------- configuration ---------- */
+/* ---------- config & small helpers ---------- */
 const DEFAULT = { name: "Aerospace Park", lat: 13.128893, lon: 77.649531 };
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const GEO = "https://geocoding-api.open-meteo.com/v1/search?name=";
 const el = id => document.getElementById(id);
+function fmtTime(iso){ try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso } }
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 
 /* ---------- theme ---------- */
 const root = document.documentElement;
-if(localStorage.getItem('theme')==='light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme');
+if(localStorage.getItem('theme') === 'light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme');
 el('themeBtn').addEventListener('click', ()=> {
   if(root.hasAttribute('data-theme')){ root.removeAttribute('data-theme'); localStorage.removeItem('theme'); }
   else { root.setAttribute('data-theme','light'); localStorage.setItem('theme','light'); }
@@ -157,104 +199,50 @@ el('themeBtn').addEventListener('click', ()=> {
 
 /* ---------- map ---------- */
 const map = L.map('map', { center:[DEFAULT.lat, DEFAULT.lon], zoom:13, attributionControl:false });
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let marker = L.marker([DEFAULT.lat, DEFAULT.lon]).addTo(map);
 
-/* ---------- charts ---------- */
-const tempChart = new Chart(el('tempChart').getContext('2d'), { type:'line', data:{ labels:[], datasets:[{data:[], borderColor:'#ff8a65'}] }, options:{plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:false } });
-const precipChart = new Chart(el('precipChart').getContext('2d'), { type:'bar', data:{ labels:[], datasets:[{data:[], backgroundColor:'#4da6ff'}] }, options:{plugins:{legend:{display:false}}, scales:{y:{max:100}}, responsive:true, maintainAspectRatio:false } });
+/* ---------- charts (maintainAspectRatio true so pinned CSS height is respected) ---------- */
+const tempChart = new Chart(el('tempChart').getContext('2d'), {
+  type:'line',
+  data:{ labels:[], datasets:[{ data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.08)', tension:0.3, pointRadius:4 }]},
+  options:{ plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:true }
+});
+const precipChart = new Chart(el('precipChart').getContext('2d'), {
+  type:'bar',
+  data:{ labels:[], datasets:[{ data:[], backgroundColor:'#4da6ff' }]},
+  options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:100}}, responsive:true, maintainAspectRatio:true }
+});
 
-/* ---------- crisp colored SVG icons (proper shapes) ---------- */
-function svg_sun(size=56){
-  return `<svg class="icon-inline" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs><filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="coloredBlur"/></filter></defs>
-    <g filter="url(#glow)"><circle cx="12" cy="12" r="4.2" fill="var(--sun)"/></g>
-    <g stroke="var(--sun)" stroke-width="1.6" stroke-linecap="round">
-      <path d="M12 2.5v2.5"/>
-      <path d="M12 19v2.5"/>
-      <path d="M4.9 4.9l1.8 1.8"/>
-      <path d="M17.3 17.3l1.8 1.8"/>
-      <path d="M2.5 12h2.5"/>
-      <path d="M19 12h2.5"/>
-      <path d="M4.9 19.1l1.8-1.8"/>
-      <path d="M17.3 6.7l1.8-1.8"/>
-    </g>
-  </svg>`;
-}
-
-function svg_partly(size=56){
-  return `<svg class="icon-inline" width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <g>${svg_sun(28)}</g>
-    <g transform="translate(6,6)">
-      <ellipse cx="8" cy="12" rx="8" ry="5" fill="var(--cloud-white)" stroke="var(--cloud-gray)"/>
-    </g>
-  </svg>`;
-}
-
-function svg_cloud(size=56){
-  return `<svg class="icon-inline" width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="12" cy="12" rx="8" ry="5" fill="var(--cloud-white)" stroke="var(--cloud-gray)"/>
-  </svg>`;
-}
-
-function svg_rain_light(size=56){
-  return `<svg class="icon-inline" width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="12" cy="9.5" rx="7.5" ry="4.2" fill="var(--cloud-white)" stroke="var(--cloud-gray)"/>
-    <g fill="var(--rain-light)">
-      <path d="M9.2 15.2c-.4.8-1.2 1.4-1.2 2.1 0 .6.5 1 1 1s1-.4 1-1c0-.5-.5-1.1-1-2.1z"/>
-      <path d="M13.7 15.2c-.4.8-1.2 1.4-1.2 2.1 0 .6.5 1 1 1s1-.4 1-1c0-.5-.5-1.1-1-2.1z"/>
-    </g>
-  </svg>`;
-}
-
-function svg_rain_heavy(size=56){
-  return `<svg class="icon-inline" width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="12" cy="8.8" rx="7.5" ry="4.2" fill="var(--cloud-white)" stroke="var(--cloud-gray)"/>
-    <g fill="var(--rain-heavy)">
-      <path d="M7.6 15.4c-.5 1-1.4 1.7-1.4 2.6 0 .8.6 1.3 1.2 1.3s1.2-.5 1.2-1.3c0-.7-.6-1.5-1-2.6z"/>
-      <path d="M12.1 15.4c-.5 1-1.4 1.7-1.4 2.6 0 .8.6 1.3 1.2 1.3s1.2-.5 1.2-1.3c0-.7-.6-1.5-1-2.6z"/>
-      <path d="M16.6 15.4c-.5 1-1.4 1.7-1.4 2.6 0 .8.6 1.3 1.2 1.3s1.2-.5 1.2-1.3c0-.7-.6-1.5-1-2.6z"/>
-    </g>
-  </svg>`;
-}
-
-function svg_storm(size=56){
-  return `<svg class="icon-inline" width="${size}" height="${size}" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-    <ellipse cx="12" cy="10" rx="7.5" ry="4.2" fill="var(--cloud-white)" stroke="var(--cloud-gray)"/>
-    <path d="M11.2 13.2l-1 3h2l-1 4" fill="var(--storm)"/>
-    <polygon points="11,13 9,17 12,17 10,21" fill="var(--storm)"/>
-  </svg>`;
-}
-
-/* ---------- utility: choose icon type and human summary ---------- */
-function chooseType(code, prob){
+/* ---------- interpret weather code -> icon + summary ---------- */
+function interpretWeather(code,prob){
   const c = Number(code);
-  if([95,96].includes(c) || prob >= 85) return {type:'storm', summary:'Thunderstorm likely — stay alert', drops:'heavy'};
-  if(c === 65 || (prob >= 60 && prob < 85)) return {type:'rainHeavy', summary:`Heavy rain expected (${prob}%)`, drops:'heavy'};
-  if([61,63,80,81].includes(c) || (prob >= 30 && prob < 60)) return {type:'rainLight', summary:`Rain likely (${prob}%)`, drops:'light'};
-  if([51,53,55].includes(c) || (prob > 0 && prob < 30)) return {type:'rainLight', summary:`Light showers possible (${prob}%)`, drops:'light'};
-  if([3,45,48].includes(c)) return {type:'cloud', summary:'Cloudy — little or no rain expected', drops:null};
-  if([1,2].includes(c)) return {type:'partly', summary:'Partly sunny — low chance of showers', drops:null};
-  if(c === 0) return {type:'sun', summary:'Mostly sunny — no rain expected', drops:null};
-  if(prob >= 60) return {type:'rainHeavy', summary:`Heavy rain likely (${prob}%)`, drops:'heavy'};
-  if(prob >= 30) return {type:'rainLight', summary:`Rain likely (${prob}%)`, drops:'light'};
-  return {type:'sun', summary:'Clear / mostly sunny', drops:null};
+  if([95,96].includes(c) || prob >= 85) return { icon: 'wi-thunderstorm', summary:'Thunderstorm likely — stay alert', drops: 'heavy' };
+  if(c === 65 || (prob >= 60 && prob < 85)) return { icon: 'wi-rain', summary:`Heavy rain expected (${prob}%)`, drops:'heavy' };
+  if([61,63,80,81,82].includes(c) || (prob >= 30 && prob < 60)) return { icon: 'wi-showers', summary:`Rain likely (${prob}%)`, drops:'light' };
+  if([51,53,55].includes(c) || (prob > 0 && prob < 30)) return { icon: 'wi-raindrop', summary:`Light showers possible (${prob}%)`, drops:'light' };
+  if([3,45,48].includes(c)) return { icon: 'wi-cloud', summary:'Cloudy — little or no rain expected', drops: null };
+  if([1,2].includes(c)) return { icon: 'wi-day-sunny-overcast', summary:'Partly sunny — low chance of showers', drops:null };
+  if(c === 0) return { icon: 'wi-day-sunny', summary:'Mostly sunny — no rain expected', drops:null };
+  if(prob >= 60) return { icon:'wi-rain', summary:`Heavy rain likely (${prob}%)`, drops:'heavy' };
+  if(prob >= 30) return { icon:'wi-showers', summary:`Rain likely (${prob}%)`, drops:'light' };
+  return { icon:'wi-day-sunny', summary:'Clear / mostly sunny', drops:null };
 }
 
-/* ---------- raindrops helper ---------- */
+/* ---------- small raindrop generator ---------- */
 function addDrops(container, count, heavy){
-  // remove existing
-  const existing = container.querySelectorAll('.drop'); existing.forEach(x=>x.remove());
+  const ex = container.querySelectorAll('.drops'); ex.forEach(x=>x.remove());
+  const wrapper = document.createElement('div'); wrapper.className = 'drops';
   for(let i=0;i<count;i++){
-    const d = document.createElement('div');
-    d.className = 'drop ' + (heavy? 'heavy':'light');
-    d.style.left = (6 + Math.random()*88) + '%';
+    const d = document.createElement('div'); d.className = 'drop ' + (heavy ? 'heavy' : 'light');
+    d.style.left = (6 + Math.random()*80) + '%';
     d.style.animationDelay = (Math.random()*0.8) + 's';
-    container.appendChild(d);
+    wrapper.appendChild(d);
   }
+  container.appendChild(wrapper);
 }
 
-/* ---------- fetch Open-Meteo ---------- */
+/* ---------- fetch open-meteo ---------- */
 async function fetchOpenMeteo(lat, lon){
   const params = new URLSearchParams({
     latitude: lat, longitude: lon,
@@ -262,143 +250,99 @@ async function fetchOpenMeteo(lat, lon){
     daily: 'temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum',
     timezone: 'auto'
   });
-  const resp = await fetch(OPEN_METEO + '?' + params.toString());
-  if(!resp.ok) throw new Error('Open-Meteo fetch failed');
-  return resp.json();
+  const res = await fetch(OPEN_METEO + '?' + params.toString());
+  if(!res.ok) throw new Error('open-meteo error ' + res.status);
+  return res.json();
 }
 
-/* ---------- helper: nearest hourly index ---------- */
 function nearestIndexToNow(times){
   if(!times || !times.length) return 0;
-  const now = Date.now(); let best = 0, bd = Infinity;
-  for(let i=0;i<times.length;i++){ const t = Date.parse(times[i]); if(isNaN(t)) continue; const d = Math.abs(t - now); if(d < bd){ bd = d; best = i; } }
+  const now = Date.now(); let best=0,bd=Infinity;
+  for(let i=0;i<times.length;i++){ const t=Date.parse(times[i]); if(isNaN(t)) continue; const d=Math.abs(t-now); if(d<bd){bd=d;best=i} }
   return best;
 }
 
-/* ---------- render / main loader ---------- */
+/* ---------- main loader ---------- */
 async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
   try{
     el('locName').innerText = label;
-    marker.setLatLng([lat, lon]); map.setView([lat, lon], 13);
+    marker.setLatLng([lat,lon]); map.setView([lat,lon],13);
     el('coords').innerText = `Lat: ${lat.toFixed(6)} • Lon: ${lon.toFixed(6)}`;
 
-    const data = await fetchOpenMeteo(lat, lon);
-    const times = data.hourly.time || [];
-    const temps = data.hourly.temperature_2m || [];
-    const probs = data.hourly.precipitation_probability || [];
-    const codes = data.hourly.weathercode || [];
-
+    const data = await fetchOpenMeteo(lat,lon);
+    const times = data.hourly.time || [], temps = data.hourly.temperature_2m || [], probs = data.hourly.precipitation_probability || [], codes = data.hourly.weathercode || [];
     const idx = nearestIndexToNow(times);
-    // safe guards
-    const currentTemp = Math.round(temps[idx] ?? temps[0] ?? 0);
-    const daily = data.daily || {};
-    const high = Math.round((daily.temperature_2m_max && daily.temperature_2m_max[0]) ?? currentTemp);
-    const low = Math.round((daily.temperature_2m_min && daily.temperature_2m_min[0]) ?? currentTemp);
 
+    const currentTemp = Math.round(temps[idx] ?? temps[0] ?? 0);
+    const high = Math.round((data.daily.temperature_2m_max && data.daily.temperature_2m_max[0]) ?? currentTemp);
+    const low = Math.round((data.daily.temperature_2m_min && data.daily.temperature_2m_min[0]) ?? currentTemp);
     el('currentTemp').innerText = `${currentTemp}°`;
     el('highTemp').innerText = `${high}°`;
     el('lowTemp').innerText = `${low}°`;
 
-    // summary & icon selection
-    const nowCode = codes[idx] ?? (daily.weathercode ? daily.weathercode[0] : 0);
-    const nowProb = Math.round(probs[idx] ?? 0);
-    const chosen = chooseType(nowCode, nowProb);
+    const codeNow = codes[idx] ?? (data.daily.weathercode ? data.daily.weathercode[0] : 0);
+    const probNow = Math.round(probs[idx] ?? 0);
+    const ch = interpretWeather(codeNow, probNow);
 
-    // set big icon (proper non-boxed shapes)
-    let bigSVG = '';
-    if(chosen.type === 'sun') bigSVG = svg_sun(56);
-    else if(chosen.type === 'partly') bigSVG = svg_partly(56);
-    else if(chosen.type === 'cloud') bigSVG = svg_cloud(56);
-    else if(chosen.type === 'rainLight') bigSVG = svg_rain_light(56);
-    else if(chosen.type === 'rainHeavy') bigSVG = svg_rain_heavy(56);
-    else if(chosen.type === 'storm') bigSVG = svg_storm(56);
+    // big icon + summary
+    el('dayIcon').innerHTML = `<i class="wi ${ch.icon}" aria-hidden="true" style="font-size:56px; color: ${getIconColor(ch.icon)}"></i>`;
+    el('daySummary').innerText = ch.summary;
 
-    el('dayIcon').innerHTML = `<div class="icon-inline">${bigSVG}</div>`;
-    el('daySummary').innerText = chosen.summary;
+    // animated drops for big icon
+    const prevDrops = el('dayIcon').querySelectorAll('.drops'); prevDrops.forEach(x=>x.remove());
+    if(ch.drops === 'light') addDrops(el('dayIcon'), 4, false);
+    if(ch.drops === 'heavy') addDrops(el('dayIcon'), 8, true);
 
-    // animated drops for big icon if rain
-    if(chosen.drops === 'light') addDrops(el('dayIcon'), 4, false);
-    else if(chosen.drops === 'heavy') addDrops(el('dayIcon'), 8, true);
-    else { const ex = el('dayIcon').querySelectorAll('.drop'); ex.forEach(x=>x.remove()); }
-
-    // hourly tiles (12 from now)
+    // hourly tiles
     el('hourlyRow').innerHTML = '';
     const count = Math.min(12, Math.max(6, times.length - idx));
     for(let i=0;i<count;i++){
-      const tIndex = idx + i;
-      const tiso = times[tIndex];
-      const ttemp = Math.round(temps[tIndex] ?? 0);
-      const tprob = Math.round(probs[tIndex] ?? 0);
-      const tcode = codes[tIndex] ?? 0;
-      const ch = chooseType(tcode, tprob);
-
-      let smallSVG = '';
-      if(ch.type === 'sun') smallSVG = svg_sun(28);
-      else if(ch.type === 'partly') smallSVG = svg_partly(28);
-      else if(ch.type === 'cloud') smallSVG = svg_cloud(28);
-      else if(ch.type === 'rainLight') smallSVG = svg_rain_light(28);
-      else if(ch.type === 'rainHeavy') smallSVG = svg_rain_heavy(28);
-      else if(ch.type === 'storm') smallSVG = svg_storm(28);
-
-      const tile = document.createElement('div');
-      tile.className = 'hourly-tile';
-      tile.innerHTML = `<div class="small-muted">${i===0 ? 'Now' : new Date(tiso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
-                        <div style="margin-top:6px">${smallSVG}</div>
-                        <div style="margin-top:6px;font-weight:700">${ttemp}°</div>
-                        <div class="small-muted" style="margin-top:4px">${tprob}%</div>`;
+      const j = idx + i;
+      const t = times[j], temp = Math.round(temps[j] ?? 0), prob = Math.round(probs[j] ?? 0), code = codes[j] ?? 0;
+      const tch = interpretWeather(code, prob);
+      const tile = document.createElement('div'); tile.className = 'hourly-tile';
+      tile.innerHTML = `<div class="small">${i===0?'Now':fmtTime(t)}</div>
+                        <div style="margin-top:8px"><i class="wi ${tch.icon}" aria-hidden="true" style="font-size:28px; color:${getIconColor(tch.icon)}"></i></div>
+                        <div style="margin-top:6px;font-weight:700">${temp}°</div>
+                        <div class="small" style="margin-top:6px">${prob}%</div>`;
       el('hourlyRow').appendChild(tile);
-
-      // light drops in tile if needed
-      if(ch.drops === 'light') addDrops(tile, 2, false);
-      if(ch.drops === 'heavy') addDrops(tile, 4, true);
-
-      // click behavior: show details
+      if(tch.drops === 'light') addDrops(tile,2,false);
+      if(tch.drops === 'heavy') addDrops(tile,4,true);
       tile.addEventListener('click', ()=> {
         document.querySelectorAll('.hourly-tile').forEach(t=>t.classList.remove('selected'));
         tile.classList.add('selected');
-        el('dayDetail').innerHTML = `<div style="font-weight:700">${i===0 ? 'Now' : new Date(tiso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</div>
-                                     <div style="margin-top:6px">${ttemp}° • ${ch.summary}</div>`;
+        el('dayDetail').innerHTML = `<div style="font-weight:700">${i===0?'Now':fmtTime(t)}</div><div style="margin-top:6px">${temp}° • ${tch.summary}</div>`;
       });
-      if(i===0){ tile.classList.add('selected'); el('dayDetail').innerHTML = `<div style="font-weight:700">Now</div><div style="margin-top:6px">${ttemp}° • ${ch.summary}</div>`; }
+      if(i===0){ tile.classList.add('selected'); el('dayDetail').innerHTML = `<div style="font-weight:700">Now</div><div style="margin-top:6px">${temp}° • ${tch.summary}</div>`; }
     }
 
-    // 5-day overview (use daily)
+    // 5-day overview
     el('dayCards').innerHTML = '';
+    const daily = data.daily || {};
     if(daily && daily.time){
-      for(let i=0;i<Math.min(5, daily.time.length); i++){
+      for(let i=0;i<Math.min(5,daily.time.length);i++){
         const dCode = daily.weathercode ? daily.weathercode[i] : 0;
         const dPrecip = daily.precipitation_sum ? Math.round(daily.precipitation_sum[i] ?? 0) : 0;
-        const dayCh = chooseType(dCode, Math.min(100, dPrecip*10));
-        const hiDay = Math.round(daily.temperature_2m_max[i] ?? 0);
-        const loDay = Math.round(daily.temperature_2m_min[i] ?? 0);
+        const dayProb = clamp(dPrecip*10,0,100);
+        const dayCh = interpretWeather(dCode, dayProb);
+        const hi = Math.round(daily.temperature_2m_max[i] ?? 0), lo = Math.round(daily.temperature_2m_min[i] ?? 0);
 
-        let iconDay = '';
-        if(dayCh.type === 'sun') iconDay = svg_sun(36);
-        else if(dayCh.type === 'partly') iconDay = svg_partly(36);
-        else if(dayCh.type === 'cloud') iconDay = svg_cloud(36);
-        else if(dayCh.type === 'rainLight') iconDay = svg_rain_light(36);
-        else if(dayCh.type === 'rainHeavy') iconDay = svg_rain_heavy(36);
-        else if(dayCh.type === 'storm') iconDay = svg_storm(36);
-
-        const card = document.createElement('div');
-        card.className = 'day-card';
+        const card = document.createElement('div'); card.className = 'day-card';
         card.innerHTML = `<div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'short'})}</div>
-                          <div style="margin-top:6px">${iconDay}</div>
-                          <div style="margin-top:6px">${hiDay}° / ${loDay}°</div>
-                          <div class="small-muted" style="margin-top:6px">${dayCh.summary}</div>`;
+                          <div style="margin-top:8px"><i class="wi ${dayCh.icon}" aria-hidden="true" style="font-size:36px; color:${getIconColor(dayCh.icon)}"></i></div>
+                          <div style="margin-top:8px">${hi}° / ${lo}°</div>
+                          <div class="small" style="margin-top:8px">${dayCh.summary}</div>`;
         el('dayCards').appendChild(card);
         card.addEventListener('click', ()=> {
           document.querySelectorAll('.day-card').forEach(c=>c.classList.remove('selected'));
           card.classList.add('selected');
-          el('dayDetail').innerHTML = `<div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</div>
-                                       <div style="margin-top:6px">${dayCh.summary}</div>
-                                       <div style="margin-top:6px">High: <b>${hiDay}°</b> • Low: <b>${loDay}°</b></div>`;
+          el('dayDetail').innerHTML = `<div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</div><div style="margin-top:6px">${dayCh.summary}</div><div style="margin-top:6px">High: <b>${hi}°</b> • Low: <b>${lo}°</b></div>`;
         });
         if(i===0) card.classList.add('selected');
       }
     }
 
-    // charts: next 12 hours
+    // charts (labels limited to next 12)
     const labels = times.slice(idx, idx+12).map(t => new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
     tempChart.data.labels = labels;
     tempChart.data.datasets[0].data = temps.slice(idx, idx+12);
@@ -414,12 +358,21 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
   }
 }
 
-/* ---------- simple geocode ---------- */
+/* ---------- helper color for icons ---------- */
+function getIconColor(iconClass){
+  if(iconClass.includes('sun')) return getComputedStyle(document.documentElement).getPropertyValue('--sun') || '#FFD740';
+  if(iconClass.includes('cloud')) return getComputedStyle(document.documentElement).getPropertyValue('--cloud-gray') || '#93A3B6';
+  if(iconClass.includes('raindrop') || iconClass.includes('showers')) return getComputedStyle(document.documentElement).getPropertyValue('--rain-light') || '#66d6ff';
+  if(iconClass.includes('rain')) return getComputedStyle(document.documentElement).getPropertyValue('--rain-heavy') || '#1ea1ff';
+  if(iconClass.includes('thunder')) return getComputedStyle(document.documentElement).getPropertyValue('--storm') || '#d47cff';
+  return '#ffffff';
+}
+
+/* ---------- geocode helper ---------- */
 async function geocode(q){
   const r = await fetch(GEO + encodeURIComponent(q) + '&count=5&language=en&format=json');
   if(!r.ok) return null;
-  const j = await r.json();
-  return j.results && j.results.length ? j.results[0] : null;
+  const j = await r.json(); return j.results && j.results.length ? j.results[0] : null;
 }
 
 /* ---------- events ---------- */
@@ -435,6 +388,7 @@ el('preset').addEventListener('change', function(){
 
 /* ---------- init ---------- */
 loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name);
+/* optional periodic refresh kept but it won't re-size charts: */
 setInterval(()=> loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name), 10*60*1000);
 </script>
 </body>
