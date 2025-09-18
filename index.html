@@ -15,20 +15,21 @@
   :root{
     --bg-from:#061018; --bg-to:#0a1625; --text:#f0f7ff; --muted:#96a3b0;
     --card:#0f1720; --accent:#ff6b6b; --ok:#66e08b; --border:rgba(255,255,255,0.05);
-    --sun:#FFD93D; --cloud:#FFFFFF; --cloud-stroke:#6b7a88;
-    --rain-light:#62CFF4; --rain-heavy:#2196F3; --storm:#A855F7;
+    --sun:#FFD93D; --cloud:#FFFFFF; --cloud-gray:#9aa6b4;
+    --rain-light:#6DD5FF; --rain-heavy:#1E90FF; --storm:#A855F7;
   }
   [data-theme="light"]{
     --bg-from:#f9fbfd; --bg-to:#f0f4f9; --text:#111; --muted:#444;
-    --card:#fff; --accent:#b22222; --ok:#2e7d32; --sun:#FFC107;
+    --card:#fff; --accent:#b22222; --ok:#2e7d32;
+    --sun:#FFC107; --cloud:#ffffff; --cloud-gray:#6f7d87; --rain-light:#4DB7FF; --rain-heavy:#0077E6; --storm:#7B61F6;
   }
 
   html,body{margin:0;height:100%;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));font-family:Inter,system-ui,sans-serif;color:var(--text)}
   .wrap{max-width:980px;margin:10px auto;padding:12px}
 
+  header{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   h1{margin:0;font-size:22px;color:var(--accent)}
   .subtitle{font-size:13px;color:var(--muted)}
-  header{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   .controls{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
 
   select,input,button{padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px}
@@ -39,27 +40,29 @@
   .card{background:var(--card);border-radius:10px;padding:12px;box-shadow:0 4px 12px rgba(0,0,0,0.4);margin-bottom:10px}
   .hl{font-weight:700}
 
-  /* top current temps */
   .top-grid{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .temp-center{font-size:42px;font-weight:800}
   .summary-block{display:flex;align-items:center;gap:10px}
-  .summary-icon{width:60px;height:60px;position:relative}
+  .summary-icon{width:60px;height:60px;position:relative;border-radius:8px;display:flex;align-items:center;justify-content:center}
 
-  /* hourly row */
   .hourly-row{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:4px}
-  .hourly-tile{min-width:68px;padding:6px;border-radius:8px;text-align:center;background:rgba(255,255,255,0.04);cursor:pointer}
-  .hourly-tile.selected{outline:2px solid rgba(255,255,255,0.15)}
+  .hourly-tile{min-width:72px;padding:6px;border-radius:8px;text-align:center;background:rgba(255,255,255,0.03);cursor:pointer}
+  .hourly-tile.selected{outline:2px solid rgba(255,255,255,0.12)}
 
   .day-cards{display:flex;gap:8px;overflow-x:auto;padding:6px 0}
-  .day-card{min-width:88px;padding:6px;border-radius:8px;text-align:center;background:rgba(255,255,255,0.04);cursor:pointer}
-  .day-card.selected{outline:2px solid rgba(255,255,255,0.15)}
+  .day-card{min-width:92px;padding:8px;border-radius:8px;text-align:center;background:rgba(255,255,255,0.03);cursor:pointer}
+  .day-card.selected{outline:2px solid rgba(255,255,255,0.12)}
 
   #map{height:140px;border-radius:8px;margin-top:6px}
 
-  /* animated raindrops */
-  .drop{position:absolute;width:4px;height:10px;border-radius:2px;background:var(--rain-light);animation:fall 0.9s linear infinite}
-  .drop.heavy{background:var(--rain-heavy);animation:fall 0.6s linear infinite}
-  @keyframes fall{0%{top:0;opacity:1}100%{top:100%;opacity:0}}
+  /* Animated droplet styles (simple, light) */
+  .drop{position:absolute;width:4px;height:10px;border-radius:2px;opacity:0.95;animation:fall 0.9s linear infinite}
+  .drop.light{background:var(--rain-light)}
+  .drop.heavy{background:var(--rain-heavy);animation-duration:0.6s}
+  @keyframes fall{0%{transform:translateY(-6px);opacity:0}30%{opacity:1}100%{transform:translateY(36px);opacity:0}}
+
+  /* small helper for icon containers */
+  .icon-bg{width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:8px}
 </style>
 </head>
 <body>
@@ -69,8 +72,10 @@
       <h1>Weather Forecast</h1>
       <div class="subtitle">Hourly • 5-Day • Open-Meteo</div>
     </div>
+
     <div class="controls">
       <select id="preset" class="mini">
+        <option value="">Presets</option>
         <option data-lat="13.128893" data-lon="77.649531">Aerospace Park</option>
         <option data-lat="12.9141" data-lon="74.8560">Mangalore</option>
         <option data-lat="17.3850" data-lon="78.4867">Hyderabad</option>
@@ -95,12 +100,14 @@
             <div class="temp-center" id="currentTemp">--°</div>
             <div>High: <span id="highTemp">--</span>°</div>
           </div>
-          <div class="summary-block">
-            <div class="summary-icon" id="dayIcon"></div>
-            <div id="daySummary">Loading...</div>
+
+          <div class="summary-block" style="margin-left:auto">
+            <div class="summary-icon" id="dayIcon"><!-- SVG icon placed here --></div>
+            <div id="daySummary" class="hl">Loading full summary…</div>
           </div>
         </div>
-        <div class="hourly-row" id="hourlyRow"></div>
+
+        <div class="hourly-row" id="hourlyRow" aria-live="polite"></div>
       </div>
 
       <div class="card">
@@ -108,8 +115,9 @@
         <div class="day-cards" id="dayCards"></div>
       </div>
 
-      <div class="card"><b>Next 12 hours – Temperature</b><canvas id="tempChart"></canvas></div>
-      <div class="card"><b>Precipitation Probability (%)</b><canvas id="precipChart"></canvas></div>
+      <div class="card"><b>Next 12 hours — Temperature</b><canvas id="tempChart"></canvas></div>
+      <div class="card"><b>Precipitation probability (%)</b><canvas id="precipChart"></canvas></div>
+
       <div class="card" id="dayDetail"></div>
     </section>
 
@@ -125,94 +133,219 @@
 </div>
 
 <script>
-const DEFAULT={name:"Aerospace Park",lat:13.128893,lon:77.649531};
-const API="https://api.open-meteo.com/v1/forecast";
-const GEO="https://geocoding-api.open-meteo.com/v1/search?name=";
-const el=id=>document.getElementById(id);
+/* ---------- config ---------- */
+const DEFAULT = { name: "Aerospace Park", lat: 13.128893, lon: 77.649531 };
+const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
+const GEO = "https://geocoding-api.open-meteo.com/v1/search?name=";
+const el = id => document.getElementById(id);
 
-/* theme toggle */
-const root=document.documentElement;
-el('themeBtn').onclick=()=>{root.toggleAttribute('data-theme');};
+/* ---------- helpers ---------- */
+function formatTimeISO(iso){ try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); } catch(e){return iso;} }
+function nearestIndexToNow(times){
+  if(!times || !times.length) return 0;
+  const now = Date.now(), arr = times.map(t=>Date.parse(t));
+  let best=0,bd=Infinity;
+  for(let i=0;i<arr.length;i++){ const d=Math.abs(arr[i]-now); if(d<bd){bd=d;best=i;} }
+  return best;
+}
 
-/* map */
-const map=L.map('map',{center:[DEFAULT.lat,DEFAULT.lon],zoom:13,attributionControl:false});
+/* ---------- map ---------- */
+const map = L.map('map',{center:[DEFAULT.lat,DEFAULT.lon],zoom:13,attributionControl:false});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-let marker=L.marker([DEFAULT.lat,DEFAULT.lon]).addTo(map);
+let marker = L.marker([DEFAULT.lat,DEFAULT.lon]).addTo(map);
 
-/* charts */
-const tempChart=new Chart(el('tempChart').getContext('2d'),{type:'line',data:{labels:[],datasets:[{data:[],borderColor:'#ff9800'}]},options:{plugins:{legend:{display:false}},responsive:true}});
-const precipChart=new Chart(el('precipChart').getContext('2d'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:'#4da6ff'}]},options:{plugins:{legend:{display:false}},scales:{y:{max:100}},responsive:true}});
+/* ---------- chart setup ---------- */
+const tempChart = new Chart(el('tempChart').getContext('2d'), { type:'line', data:{labels:[],datasets:[{data:[], borderColor:'#ff9800'}]}, options:{plugins:{legend:{display:false}},responsive:true} });
+const precipChart = new Chart(el('precipChart').getContext('2d'), { type:'bar', data:{labels:[],datasets:[{data:[], backgroundColor:'#4da6ff'}]}, options:{plugins:{legend:{display:false}},scales:{y:{max:100}},responsive:true} });
 
-/* icon builder */
-function icon(type,prob){
-  if(type==='sun') return `<svg viewBox="0 0 24 24" width="48" fill="var(--sun)"><circle cx="12" cy="12" r="5"/></svg>`;
-  if(type==='partly') return `<svg viewBox="0 0 24 24" width="48"><circle cx="8" cy="8" r="3" fill="var(--sun)"/><ellipse cx="16" cy="16" rx="6" ry="4" fill="var(--cloud)" stroke="var(--cloud-stroke)"/></svg>`;
-  if(type==='cloud') return `<svg viewBox="0 0 24 24" width="48"><ellipse cx="12" cy="14" rx="8" ry="5" fill="var(--cloud)" stroke="var(--cloud-stroke)"/></svg>`;
-  if(type==='rainLight') return `<div style="position:relative;width:48px;height:48px"><ellipse cx="24" cy="20" rx="14" ry="8" fill="var(--cloud)" stroke="var(--cloud-stroke)"/></div>`;
-  if(type==='rainHeavy') return `<div style="position:relative;width:48px;height:48px"><ellipse cx="24" cy="20" rx="14" ry="8" fill="var(--cloud)" stroke="var(--cloud-stroke)"/></div>`;
-  if(type==='storm') return `<svg viewBox="0 0 24 24" width="48"><ellipse cx="12" cy="14" rx="8" ry="5" fill="var(--cloud)" stroke="var(--cloud-stroke)"/><polygon points="11,15 9,20 13,20 11,24" fill="var(--storm)"/></svg>`;
-  return '';
-}
-function addDrops(elm,count,heavy){
-  elm.innerHTML+=Array.from({length:count},()=>`<div class="drop ${heavy?'heavy':''}" style="left:${Math.random()*90}%;animation-delay:${Math.random()}s"></div>`).join('');
-}
-function wcType(code,prob){
-  if([65,82,95,96].includes(code)) return 'storm';
-  if(prob>=60) return 'rainHeavy';
-  if(prob>=20) return 'rainLight';
-  if([3,45,48].includes(code)) return 'cloud';
-  if([1,2].includes(code)) return 'partly';
-  return 'sun';
-}
+/* ---------- colored SVG icons ---------- */
+function svgSun(size=56){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="5" fill="var(--sun)"/><g opacity="0.18"><circle cx="12" cy="12" r="8" fill="var(--sun)"/></g></svg>`; }
+function svgPartly(size=56){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><g><circle cx="8" cy="8" r="3" fill="var(--sun)"/><ellipse cx="15" cy="15" rx="7" ry="4" fill="var(--cloud)" stroke="var(--cloud-gray)"/></g></svg>`; }
+function svgCloud(size=56){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><ellipse cx="12" cy="14" rx="8" ry="5" fill="var(--cloud)" stroke="var(--cloud-gray)"/></svg>`; }
+function svgRainLight(size=56){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="7" ry="4" fill="var(--cloud)" stroke="var(--cloud-gray)"/></svg>`; }
+function svgRainHeavy(size=56){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="7" ry="4" fill="var(--cloud)" stroke="var(--cloud-gray)"/></svg>`; }
+function svgStorm(size=56){ return `<svg width="${size}" height="${size}" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="7" ry="4" fill="var(--cloud)" stroke="var(--cloud-gray)"/><path d="M11 12l-1 3h2l-1 4" fill="var(--storm)"/></svg>`; }
 
-/* fetch */
-async function fetchWeather(lat,lon){
-  const q=new URLSearchParams({latitude:lat,longitude:lon,hourly:'temperature_2m,precipitation_probability,weathercode',daily:'temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum',timezone:'auto'});
-  const r=await fetch(API+'?'+q);return r.json();
+/* map weathercode + prob -> type & human summary */
+function chooseType(code,prob){
+  const c = Number(code);
+  if([95,96].includes(c) || prob >= 80) return {type:'storm', summary:'Thunderstorm likely — stay alert', drops:'heavy'};
+  if(c===65 || (prob >= 60 && prob < 80)) return {type:'rainHeavy', summary:`Heavy rain expected (${prob}% chance)`, drops:'heavy'};
+  if([61,63,80,81].includes(c) || (prob >= 30 && prob < 60)) return {type:'rainLight', summary:`Rain likely (${prob}% chance)`, drops:'light'};
+  if([51,53,55].includes(c) || (prob > 0 && prob < 30)) return {type:'rainLight', summary:`Light showers possible (${prob}% chance)`, drops:'light'};
+  if([3,45,48].includes(c)) return {type:'cloud', summary:'Cloudy — little or no rain expected', drops:null};
+  if([1,2].includes(c)) return {type:'partly', summary:'Partly sunny — low chance of showers', drops:null};
+  if(c===0) return {type:'sun', summary:'Mostly sunny — no rain expected', drops:null};
+  // fallback by prob
+  if(prob >= 60) return {type:'rainHeavy', summary:`Heavy rain likely (${prob}% chance)`, drops:'heavy'};
+  if(prob >= 30) return {type:'rainLight', summary:`Rain likely (${prob}% chance)`, drops:'light'};
+  return {type:'sun', summary:'Clear / mostly sunny', drops:null};
 }
 
-/* render */
-async function loadAll(lat=DEFAULT.lat,lon=DEFAULT.lon,label=DEFAULT.name){
-  el('locName').textContent=label; marker.setLatLng([lat,lon]); map.setView([lat,lon],13); el('coords').textContent=`Lat:${lat.toFixed(3)} • Lon:${lon.toFixed(3)}`;
-  const d=await fetchWeather(lat,lon);
+/* add animated drops into a container element */
+function addDropsTo(container, count, heavy){
+  // remove previous drops
+  const existing = container.querySelectorAll('.drop'); existing.forEach(d=>d.remove());
+  for(let i=0;i<count;i++){
+    const d = document.createElement('div'); d.className = 'drop ' + (heavy ? 'heavy' : 'light');
+    d.style.left = (8 + Math.random()*80) + '%';
+    d.style.animationDelay = (Math.random()*0.8) + 's';
+    container.appendChild(d);
+  }
+}
 
-  const idx=new Date().getHours();
-  const t=d.hourly.temperature_2m[idx], hi=d.daily.temperature_2m_max[0], lo=d.daily.temperature_2m_min[0];
-  el('currentTemp').textContent=`${Math.round(t)}°`; el('highTemp').textContent=hi; el('lowTemp').textContent=lo;
+/* ---------- fetch data ---------- */
+async function fetchOpenMeteo(lat,lon){
+  const p = new URLSearchParams({
+    latitude: lat, longitude: lon,
+    hourly: 'temperature_2m,precipitation_probability,weathercode',
+    daily: 'temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum',
+    timezone: 'auto'
+  });
+  const res = await fetch(OPEN_METEO + '?' + p.toString());
+  if(!res.ok) throw new Error('open-meteo ' + res.status);
+  return res.json();
+}
 
-  const prob=d.hourly.precipitation_probability[idx]; const code=d.hourly.weathercode[idx];
-  const type=wcType(code,prob); el('dayIcon').innerHTML=icon(type,prob); if(type.includes('rain')) addDrops(el('dayIcon'),type==='rainHeavy'?6:3,type==='rainHeavy');
-  el('daySummary').textContent=prob>=50?`High chance of rain (${prob}%)`:(prob>0?`Slight chance (${prob}%)`:'Clear');
+/* ---------- render functions ---------- */
+async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
+  el('locName').innerText = label;
+  marker.setLatLng([lat,lon]); map.setView([lat,lon],13);
+  el('coords').innerText = `Lat: ${lat.toFixed(6)} • Lon: ${lon.toFixed(6)}`;
 
-  /* hourly */
-  el('hourlyRow').innerHTML='';
-  for(let i=0;i<12;i++){
-    const temp=Math.round(d.hourly.temperature_2m[idx+i]); const pr=d.hourly.precipitation_probability[idx+i]; const c=wcType(d.hourly.weathercode[idx+i],pr);
-    const tile=document.createElement('div'); tile.className='hourly-tile'; tile.innerHTML=`<div>${i===0?'Now':(idx+i)%24}:00</div><div>${icon(c,pr)}</div><div>${temp}°</div><div style="font-size:12px">${pr}%</div>`; if(c.includes('rain')) addDrops(tile.querySelector('div:nth-child(2)'),c==='rainHeavy'?5:2,c==='rainHeavy');
+  const data = await fetchOpenMeteo(lat,lon).catch(e=>{ console.error(e); alert('Fetch failed'); return null; });
+  if(!data) return;
+
+  // choose nearest hourly index to local time
+  const idx = nearestIndexToNow(data.hourly.time);
+  const curTemp = Math.round(data.hourly.temperature_2m[idx] ?? data.hourly.temperature_2m[0] ?? 0);
+  const daily = data.daily || {};
+  const hi = Math.round((daily.temperature_2m_max && daily.temperature_2m_max[0]) ?? curTemp);
+  const lo = Math.round((daily.temperature_2m_min && daily.temperature_2m_min[0]) ?? curTemp);
+
+  el('currentTemp').innerText = `${curTemp}°`;
+  el('highTemp').innerText = hi;
+  el('lowTemp').innerText = lo;
+
+  // build summary using code + probability
+  const codeNow = data.hourly.weathercode[idx] ?? (daily.weathercode ? daily.weathercode[0] : 0);
+  const probNow = Math.round(data.hourly.precipitation_probability[idx] ?? 0);
+  const chosen = chooseType(codeNow, probNow);
+  // set big icon & summary text
+  let bigIcon = '';
+  if(chosen.type === 'sun') bigIcon = svgSun(56);
+  else if(chosen.type === 'partly') bigIcon = svgPartly(56);
+  else if(chosen.type === 'cloud') bigIcon = svgCloud(56);
+  else if(chosen.type === 'rainLight') bigIcon = svgRainLight(56);
+  else if(chosen.type === 'rainHeavy') bigIcon = svgRainHeavy(56);
+  else if(chosen.type === 'storm') bigIcon = svgStorm(56);
+  el('dayIcon').innerHTML = `<div class="icon-bg">${bigIcon}</div>`;
+  el('daySummary').innerText = chosen.summary;
+
+  // animated drops only when needed
+  if(chosen.drops === 'light') addDropsTo(el('dayIcon'), 4, false);
+  else if(chosen.drops === 'heavy') addDropsTo(el('dayIcon'), 8, true);
+  else { const ex = el('dayIcon').querySelectorAll('.drop'); ex.forEach(x=>x.remove()); }
+
+  // build hourly tiles (12 starting now)
+  el('hourlyRow').innerHTML = '';
+  const start = idx;
+  const count = Math.min(12, data.hourly.time.length - start);
+  for(let i=0;i<count;i++){
+    const hh = data.hourly.time[start + i];
+    const temp = Math.round(data.hourly.temperature_2m[start + i] ?? 0);
+    const prob = Math.round(data.hourly.precipitation_probability[start + i] ?? 0);
+    const code = data.hourly.weathercode[start + i] ?? 0;
+    const ch = chooseType(code, prob);
+
+    const tile = document.createElement('div'); tile.className = 'hourly-tile';
+    let iconSmall = '';
+    if(ch.type === 'sun') iconSmall = svgSun(28);
+    else if(ch.type === 'partly') iconSmall = svgPartly(28);
+    else if(ch.type === 'cloud') iconSmall = svgCloud(28);
+    else if(ch.type === 'rainLight') iconSmall = svgRainLight(28);
+    else if(ch.type === 'rainHeavy') iconSmall = svgRainHeavy(28);
+    else if(ch.type === 'storm') iconSmall = svgStorm(28);
+
+    tile.innerHTML = `<div style="font-size:12px;color:var(--muted)">${i===0?'Now':formatTimeISO(hh)}</div>
+                      <div style="margin-top:6px">${iconSmall}</div>
+                      <div style="margin-top:6px;font-weight:700">${temp}°</div>
+                      <div style="font-size:12px;color:var(--muted)">${prob}%</div>`;
     el('hourlyRow').appendChild(tile);
+    // optional: add drops for hourly tile if needed
+    if(ch.drops === 'light') addDropsTo(tile, 2, false);
+    if(ch.drops === 'heavy') addDropsTo(tile, 4, true);
+    // click to show details
+    tile.addEventListener('click', ()=> {
+      document.querySelectorAll('.hourly-tile').forEach(t=>t.classList.remove('selected'));
+      tile.classList.add('selected');
+      el('dayDetail').innerHTML = `<div style="font-weight:700">${i===0?'Now':formatTimeISO(hh)}</div><div style="margin-top:6px">${temp}° • ${ch.summary}</div>`;
+    });
+    if(i===0){ tile.classList.add('selected'); el('dayDetail').innerHTML = `<div style="font-weight:700">Now</div><div style="margin-top:6px">${temp}° • ${ch.summary}</div>`; }
   }
 
-  /* 5-day */
-  el('dayCards').innerHTML='';
-  for(let i=0;i<5;i++){
-    const hi=Math.round(d.daily.temperature_2m_max[i]); const lo=Math.round(d.daily.temperature_2m_min[i]);
-    const pr=d.daily.precipitation_sum[i]; const c=wcType(d.daily.weathercode[i],pr*10);
-    const card=document.createElement('div'); card.className='day-card'; card.innerHTML=`<div>${new Date(d.daily.time[i]).toLocaleDateString([], {weekday:'short'})}</div><div>${icon(c,pr)}</div><div>${hi}/${lo}</div>`; if(c.includes('rain')) addDrops(card.querySelector('div:nth-child(2)'),c==='rainHeavy'?5:2,c==='rainHeavy');
-    el('dayCards').appendChild(card);
+  // 5-day overview
+  el('dayCards').innerHTML = '';
+  if(daily && daily.time){
+    for(let i=0;i<daily.time.length && i<5;i++){
+      const dayCode = daily.weathercode ? daily.weathercode[i] : 0;
+      const dayPrecip = daily.precipitation_sum ? Math.round(daily.precipitation_sum[i] ?? 0) : 0;
+      const dayType = chooseType(dayCode, Math.min(100, dayPrecip*10));
+      const hiDay = Math.round(daily.temperature_2m_max[i] ?? 0);
+      const loDay = Math.round(daily.temperature_2m_min[i] ?? 0);
+
+      let iconDay = '';
+      if(dayType.type === 'sun') iconDay = svgSun(36);
+      else if(dayType.type === 'partly') iconDay = svgPartly(36);
+      else if(dayType.type === 'cloud') iconDay = svgCloud(36);
+      else if(dayType.type === 'rainLight') iconDay = svgRainLight(36);
+      else if(dayType.type === 'rainHeavy') iconDay = svgRainHeavy(36);
+      else if(dayType.type === 'storm') iconDay = svgStorm(36);
+
+      const card = document.createElement('div'); card.className = 'day-card';
+      card.innerHTML = `<div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'short'})}</div>
+                        <div style="margin-top:6px">${iconDay}</div>
+                        <div style="margin-top:6px">${hiDay}° / ${loDay}°</div>
+                        <div style="font-size:12px;color:var(--muted);margin-top:6px">${dayType.summary}</div>`;
+      el('dayCards').appendChild(card);
+      card.addEventListener('click', ()=> {
+        document.querySelectorAll('.day-card').forEach(c=>c.classList.remove('selected'));
+        card.classList.add('selected');
+        el('dayDetail').innerHTML = `<div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</div><div style="margin-top:6px">${dayType.summary}</div><div style="margin-top:6px">High: <b>${hiDay}°</b> • Low: <b>${loDay}°</b></div>`;
+      });
+      if(i===0){ card.classList.add('selected'); }
+    }
   }
 
-  /* charts */
-  const times=d.hourly.time.slice(idx,idx+12).map(t=>new Date(t).getHours()+":00");
-  tempChart.data.labels=times; tempChart.data.datasets[0].data=d.hourly.temperature_2m.slice(idx,idx+12); tempChart.update();
-  precipChart.data.labels=times; precipChart.data.datasets[0].data=d.hourly.precipitation_probability.slice(idx,idx+12); precipChart.update();
+  // charts: next 12
+  const labels = data.hourly.time.slice(idx, idx+12).map(t=>formatTimeISO(t));
+  tempChart.data.labels = labels;
+  tempChart.data.datasets[0].data = data.hourly.temperature_2m.slice(idx, idx+12);
+  tempChart.update();
+
+  precipChart.data.labels = labels;
+  precipChart.data.datasets[0].data = data.hourly.precipitation_probability.slice(idx, idx+12);
+  precipChart.update();
 }
 
-/* search */
-el('searchBtn').onclick=async()=>{const q=el('searchBox').value.trim();if(!q)return;const r=await fetch(GEO+q);const j=await r.json();if(j.results&&j.results[0])loadAll(j.results[0].latitude,j.results[0].longitude,j.results[0].name);};
-el('preset').onchange=e=>{const o=e.target.selectedOptions[0];loadAll(+o.dataset.lat,+o.dataset.lon,o.textContent);};
+/* ---------- geocoding ---------- */
+async function geocode(q){
+  const r = await fetch(GEO + encodeURIComponent(q) + '&count=5&language=en&format=json');
+  if(!r.ok) return null;
+  const j = await r.json(); return j.results && j.results.length ? j.results[0] : null;
+}
 
-/* init */
-loadAll();
+/* ---------- events ---------- */
+el('searchBtn').addEventListener('click', async ()=>{
+  const q = el('searchBox').value.trim(); if(!q) return alert('Type a place name');
+  const res = await geocode(q); if(!res) return alert('Place not found');
+  loadAll(res.latitude, res.longitude, `${res.name}${res.admin1? ', '+res.admin1:''}`);
+});
+el('preset').addEventListener('change', function(){ const opt = this.selectedOptions[0]; if(!opt || !opt.dataset.lat) return; loadAll(Number(opt.dataset.lat), Number(opt.dataset.lon), opt.textContent); });
+
+/* ---------- init ---------- */
+loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name);
+setInterval(()=> loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name), 10*60*1000);
 </script>
 </body>
 </html>
