@@ -5,9 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Weather Forecast</title>
 
-<!-- Weather Icons (font) -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css"/>
-
 <!-- Leaflet + Chart.js -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -19,7 +16,7 @@
     --bg-from:#061018; --bg-to:#0a1625; --text:#eef6fb; --muted:#91a3b0;
     --card:#0f1720; --accent:#ff6b6b; --border:rgba(255,255,255,0.06);
     --sun:#FFD740; --sun-2:#FFB547; --cloud-white:#ffffff; --cloud-gray:#9aa6b4;
-    --rain-light:#66d6ff; --rain-heavy:#1ea1ff; --storm:#d47cff;
+    --rain-light:#66D6FF; --rain-heavy:#1EA1FF; --storm:#D47CFF;
   }
   [data-theme="light"]{
     --bg-from:#f7fbff; --bg-to:#f1f6fb; --text:#111; --muted:#465563; --card:#ffffff;
@@ -28,15 +25,14 @@
   }
 
   html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));color:var(--text);-webkit-font-smoothing:antialiased}
-  .wrap{max-width:980px;margin:12px auto;padding:12px}
+  .wrap{max-width:980px;margin:10px auto;padding:10px}
   header{display:flex;flex-direction:column;gap:6px}
   .title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  h1{margin:0;font-size:22px;color:var(--accent)}
+  h1{margin:0;font-size:20px;color:var(--accent)}
   .subtitle{font-size:13px;color:var(--muted)}
-  .meta-line{font-size:13px;color:var(--muted)} /* moved up as requested */
+  .meta-line{font-size:13px;color:var(--muted)}
 
   .controls{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
-
   select,input,button{padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px}
   .mini{padding:6px 8px;font-size:13px}
 
@@ -50,9 +46,12 @@
   .top-grid{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
   .temp-block{display:flex;gap:12px;align-items:center}
   .temp-left,.temp-right{font-size:13px;color:var(--muted);text-align:center}
-  .temp-center{font-size:44px;font-weight:800;text-align:center;min-width:90px}
+  .temp-center{font-size:40px;font-weight:800;text-align:center;min-width:80px}
   .summary-block{display:flex;gap:12px;align-items:center;margin-left:auto}
-  .summary-icon{width:72px;height:72px;display:flex;align-items:center;justify-content:center;border-radius:8px}
+  .summary-icon{width:68px;height:68px;display:flex;align-items:center;justify-content:center;border-radius:8px}
+
+  .legend{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  .legend .item{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--muted)}
 
   .hourly-row{display:flex;gap:8px;overflow-x:auto;padding:10px 4px;margin-top:12px}
   .hourly-tile{min-width:76px;padding:8px;border-radius:10px;text-align:center;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
@@ -66,24 +65,29 @@
   .card canvas { display:block; width:100% !important; height:220px !important; max-height:260px; }
   .card .chart-container { overflow:hidden; }
 
-  #map{height:160px;border-radius:10px;margin-top:10px;border:1px solid var(--border)}
+  #map{height:150px;border-radius:10px;margin-top:10px;border:1px solid var(--border)}
 
-  /* Weather Icons color mapping — stronger, filled colors */
-  .wi-day-sunny { color: var(--sun); font-size:52px; text-shadow:0 4px 12px rgba(255,215,0,0.08) }
-  .wi-day-sunny-overcast { color: var(--sun-2); font-size:44px }
-  .wi-cloud, .wi-cloudy { color: var(--cloud-white); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25)); font-size:44px }
-  .wi-showers, .wi-raindrop { color: var(--rain-light); font-size:34px }
-  .wi-rain { color: var(--rain-heavy); font-size:34px }
-  .wi-thunderstorm { color: var(--storm); font-size:40px; text-shadow:0 4px 10px rgba(196,120,255,0.06) }
-
+  /* raindrop animation */
   .drops { position:relative; width:100%; height:40px; pointer-events:none; overflow:visible }
   .drops .drop{ position:absolute; width:3px; height:10px; border-radius:2px; animation:fall 0.9s linear infinite; opacity:0.95 }
   .drops .light{ background:var(--rain-light) }
   .drops .heavy{ background:var(--rain-heavy); animation-duration:0.6s }
   @keyframes fall { 0%{ transform:translateY(-8px); opacity:0 } 25%{ opacity:1 } 100%{ transform:translateY(36px); opacity:0 } }
 
-  /* responsive layout fix to avoid horizontal overflow */
-  body, .wrap { overscroll-behavior-x: contain; -webkit-tap-highlight-color: transparent }
+  /* small screen tweaks to make top fit on first view */
+  @media(max-width:420px){
+    .wrap{padding:8px;margin:6px}
+    .temp-center{font-size:34px}
+    .summary-icon{width:56px;height:56px}
+    .card canvas{height:160px !important}
+    h1{font-size:18px}
+    .subtitle, .meta-line{font-size:12px}
+    .hourly-tile { min-width:68px; padding:6px }
+    .day-card { min-width:88px; padding:8px }
+  }
+
+  /* ensure nothing forces horizontal overflow */
+  body,.wrap{overscroll-behavior-x:contain}
 </style>
 </head>
 <body>
@@ -109,14 +113,24 @@
           </select>
           <input id="searchBox" placeholder="Search city / place" />
           <button id="searchBtn" class="mini">Search</button>
-          <button id="themeBtn" class="mini">🌓</button>
+          <button id="themeBtn" class="mini" title="Toggle theme">🌓</button>
         </div>
       </div>
 
-      <!-- moved meta-line here (above the big summary card) -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
         <div id="metaInfo" class="meta-line">Aerospace Park — Last updated: — • Lat: 13.128893 • Lon: 77.649531</div>
         <div class="small" id="miniNote" style="color:var(--muted)">Default: Aerospace Park</div>
+      </div>
+
+      <!-- Legend (icon explanation) -->
+      <div class="legend card" style="margin-top:8px;padding:8px;">
+        <div style="font-weight:700;margin-right:8px">Icon legend —</div>
+        <div class="item" id="leg-sun" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 64 64"><circle cx="32" cy="32" r="8" fill="var(--sun)"/><g stroke="#FFB347" stroke-width="1.5"><line x1="32" y1="4" x2="32" y2="14"/><line x1="4" y1="32" x2="14" y2="32"/></g></svg> Sunny</div>
+        <div class="item" id="leg-partly"><svg width="26" height="26" viewBox="0 0 64 64"><circle cx="22" cy="18" r="6" fill="var(--sun)"/><path d="M36 26c-6 0-10 4-10 8h18c4 0 8-4 8-8s-4-8-8-8z" fill="var(--cloud-white)"/></svg> Partly sunny</div>
+        <div class="item" id="leg-cloud"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M44 26c-6 0-10 4-10 8h18c4 0 8-4 8-8s-4-8-8-8z" fill="var(--cloud-white)"/></svg> Cloudy</div>
+        <div class="item" id="leg-lightrain"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M44 26c-4 0-6 3-6 6h12c3 0 6-3 6-6s-3-6-6-6z" fill="var(--cloud-white)"/><path d="M28 48c0 2.3-1.2 4-2.8 4S22.4 50.3 22.4 48" fill="var(--rain-light)"/></svg> Light rain</div>
+        <div class="item" id="leg-heavyrain"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M46 26c-5 0-9 4-9 8h18c4 0 8-4 8-8s-4-8-8-8z" fill="var(--cloud-white)"/><path d="M22 48c0 2.3-1.3 4-3 4s-3-1.7-3-4" fill="var(--rain-heavy)"/></svg> Heavy rain</div>
+        <div class="item" id="leg-thunder"><svg width="26" height="26" viewBox="0 0 64 64"><path d="M44 24c-6 0-10 4-10 8h18c4 0 8-4 8-8s-4-8-8-8z" fill="var(--cloud-white)"/><polygon points="34,38 30,46 36.5,45.9 33.5,52 41,40.9" fill="var(--storm)"/></svg> Thunderstorm</div>
       </div>
     </header>
 
@@ -184,14 +198,20 @@
 
         <div class="card">
           <div style="font-weight:700">Info</div>
-          <div class="small" style="margin-top:8px">Data: Open-Meteo. Icons: Weather Icons (Erik Flowers). Charts: Chart.js. Map: Leaflet.</div>
+          <div class="small" style="margin-top:8px">Tap hourly tiles for details. Default: Aerospace Park. Data: Open-Meteo.</div>
         </div>
       </aside>
     </main>
+
+    <!-- footer credits -->
+    <div style="text-align:center;margin-top:8px;color:var(--muted);font-size:13px">
+      <div>Created and designed by Animesh.</div>
+      <div>Data: Open-Meteo (free). Icons: inline SVG. Charts: Chart.js. Map: Leaflet.</div>
+    </div>
   </div>
 
 <script>
-/* ---------- config & small helpers ---------- */
+/* ---------- config & helpers ---------- */
 const DEFAULT = { name: "Aerospace Park", lat: 13.128893, lon: 77.649531 };
 const OPEN_METEO = "https://api.open-meteo.com/v1/forecast";
 const GEO = "https://geocoding-api.open-meteo.com/v1/search?name=";
@@ -214,43 +234,60 @@ let marker = L.marker([DEFAULT.lat, DEFAULT.lon]).addTo(map);
 
 /* ---------- charts ---------- */
 const tempChart = new Chart(el('tempChart').getContext('2d'), {
-  type:'line', data:{ labels:[], datasets:[{ data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.08)', tension:0.3, pointRadius:4 }]},
+  type:'line',
+  data:{ labels:[], datasets:[{ data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.08)', tension:0.3, pointRadius:4 }]},
   options:{ plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:true }
 });
 const precipChart = new Chart(el('precipChart').getContext('2d'), {
-  type:'bar', data:{ labels:[], datasets:[{ data:[], backgroundColor:'#4da6ff' }]},
+  type:'bar',
+  data:{ labels:[], datasets:[{ data:[], backgroundColor:'#4da6ff' }]},
   options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:100}}, responsive:true, maintainAspectRatio:true }
 });
 
-/* ---------- map weathercode -> icon + summary ---------- */
-function interpretWeather(code,prob){
-  const c = Number(code);
-  if([95,96].includes(c) || prob >= 85) return { icon: 'wi-thunderstorm', summary:'Thunderstorm likely — stay alert', drops:'heavy' };
-  if(c === 65 || (prob >= 60 && prob < 85)) return { icon:'wi-rain', summary:`Heavy rain expected (${prob}%)`, drops:'heavy' };
-  if([61,63,80,81,82].includes(c) || (prob >= 30 && prob < 60)) return { icon:'wi-showers', summary:`Rain likely (${prob}%)`, drops:'light' };
-  if([51,53,55].includes(c) || (prob > 0 && prob < 30)) return { icon:'wi-raindrop', summary:`Light showers possible (${prob}%)`, drops:'light' };
-  if([3,45,48].includes(c)) return { icon:'wi-cloud', summary:'Cloudy — little or no rain expected', drops:null };
-  if([1,2].includes(c)) return { icon:'wi-day-sunny-overcast', summary:'Partly sunny — low chance of showers', drops:null };
-  if(c === 0) return { icon:'wi-day-sunny', summary:'Mostly sunny — no rain expected', drops:null };
-  if(prob >= 60) return { icon:'wi-rain', summary:`Heavy rain likely (${prob}%)`, drops:'heavy' };
-  if(prob >= 30) return { icon:'wi-showers', summary:`Rain likely (${prob}%)`, drops:'light' };
-  return { icon:'wi-day-sunny', summary:'Clear / mostly sunny', drops:null };
+/* ---------- inline SVG factory ---------- */
+function iconSVG(kind, size = 56){
+  // returns an HTML string containing inline svg for the type
+  // kinds: sun, partly, cloud, rain-light, rain-heavy, thunder
+  if(kind === 'sun') return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"><circle cx="32" cy="32" r="10" fill="var(--sun)"/><g stroke="#FFB347" stroke-width="2" stroke-linecap="round"><line x1="32" y1="4" x2="32" y2="14"/><line x1="32" y1="50" x2="32" y2="60"/><line x1="4" y1="32" x2="14" y2="32"/><line x1="50" y1="32" x2="60" y2="32"/><line x1="12" y1="12" x2="19" y2="19"/><line x1="45" y1="45" x2="52" y2="52"/><line x1="12" y1="52" x2="19" y2="45"/><line x1="45" y1="19" x2="52" y2="12"/></g></svg>`;}
+  if(kind === 'partly') return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"><circle cx="22" cy="18" r="8" fill="var(--sun)"/><path d="M36 26c-0.7 0-1.5 0.1-2.2 0.3-1.6-3.8-5.3-6.3-9.6-6.3-5.7 0-10.3 4.2-10.8 9.6C12.6 30 10 33 10 36.8 10 41.6 14.4 46 19.2 46h16.8C41.1 46 46 41.1 46 35.2 46 30.6 41.8 26 36 26z" fill="var(--cloud-white)"/></svg>`;}
+  if(kind === 'cloud') return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"><path d="M48 30c-0.8 0-1.6 0.1-2.4 0.3-1.7-4.1-5.8-6.7-10.5-6.7-6.3 0-11.4 4.6-12 10.4C21 35 18.2 38 18.2 41.8 18.2 46.9 22.7 51.4 27.8 51.4H46c5.5 0 10-4.5 10-10S51.5 30 46 30z" fill="var(--cloud-white)"/></svg>`;}
+  if(kind === 'rain-light') return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"><path d="M44 26c-0.7 0-1.4 0.1-2.1 0.25-1.5-3.8-5.1-6.1-9.1-6.1-5.3 0-9.6 3.9-10.1 8.9C19.5 29 16.9 32 16.9 35.7 16.9 40.2 20.9 44.2 25.4 44.2H42c4.9 0 8.9-4 8.9-9S46.9 26 42 26z" fill="var(--cloud-white)"/><path d="M28 48c0 2.3-1.2 4-2.8 4S22.4 50.3 22.4 48c0-1 0.9-2.6 2.8-4 1.9 1.4 2.8 3 2.8 4z" fill="var(--rain-light)"/><path d="M36 48c0 2.3-1.2 4-2.8 4s-2.8-1.7-2.8-4c0-1 0.9-2.6 2.8-4 1.9 1.4 2.8 3 2.8 4z" fill="var(--rain-light)"/></svg>`;}
+  if(kind === 'rain-heavy') return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"><path d="M46 26c-0.8 0-1.6 0.1-2.4 0.3-1.7-4.1-5.8-6.7-10.5-6.7-6.3 0-11.4 4.6-12 10.4C19 35 16 38 16 41.8 16 46.9 20.6 51.4 25.8 51.4H44c5.5 0 10-4.5 10-10S49.5 26 44 26z" fill="var(--cloud-white)"/><path d="M22 48c0 2.3-1.3 4-3 4s-3-1.7-3-4c0-0.9.7-2.3 2-3.4 1.3 1.1 2 2.5 2 3.4z" fill="var(--rain-heavy)"/><path d="M30 48c0 2.5-1.3 4.6-3 4.6s-3-2.1-3-4.6c0-1 .7-2.6 2-3.7 1.3 1.1 2 2.6 2 3.7z" fill="var(--rain-heavy)"/><path d="M38 48c0 2.5-1.3 4.6-3 4.6s-3-2.1-3-4.6c0-1 .7-2.6 2-3.7 1.3 1.1 2 2.6 2 3.7z" fill="var(--rain-heavy)"/><path d="M46 48c0 2.3-1.3 4-3 4s-3-1.7-3-4c0-0.9.7-2.3 2-3.4 1.3 1.1 2 2.5 2 3.4z" fill="var(--rain-heavy)"/></svg>`;}
+  if(kind === 'thunder') return `<svg viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"><path d="M44 24c-1 0-2 0.15-3 0.4-1.6-3.9-5.2-6.3-9.5-6.3-5.6 0-10.2 4.2-10.7 9.5C18 28 15.2 31 15.2 34.7 15.2 39.4 19.8 43.9 24.8 43.9H42c5.3 0 9.6-4.3 9.6-9.6S47.3 24 42 24z" fill="var(--cloud-white)"/><polygon points="34,38 30,46 36.5,45.9 33.5,52 41,40.9" fill="var(--storm)"/></svg>`;}
+  return '';
 }
 
-/* ---------- little raindrop animation helper ---------- */
+/* ---------- map weathercode -> icon type + summary ---------- */
+function interpretWeather(code,prob){
+  // returns { kind: 'sun'|'partly'|'cloud'|'rain-light'|'rain-heavy'|'thunder', summary:'…', drops: null|'light'|'heavy' }
+  const c = Number(code);
+  if([95,96].includes(c) || prob >= 85) return { kind:'thunder', summary:'Thunderstorm likely — stay alert', drops:'heavy' };
+  if(c === 65 || (prob >= 60 && prob < 85)) return { kind:'rain-heavy', summary:`Heavy rain expected (${prob}%)`, drops:'heavy' };
+  if([61,63,80,81,82].includes(c) || (prob >= 30 && prob < 60)) return { kind:'rain-light', summary:`Rain likely (${prob}%)`, drops:'light' };
+  if([51,53,55].includes(c) || (prob > 0 && prob < 30)) return { kind:'rain-light', summary:`Light showers possible (${prob}%)`, drops:'light' };
+  if([3,45,48].includes(c)) return { kind:'cloud', summary:'Cloudy — little or no rain expected', drops:null };
+  if([1,2].includes(c)) return { kind:'partly', summary:'Partly sunny — low chance of showers', drops:null };
+  if(c === 0) return { kind:'sun', summary:'Mostly sunny — no rain expected', drops:null };
+  if(prob >= 60) return { kind:'rain-heavy', summary:`Heavy rain likely (${prob}%)`, drops:'heavy' };
+  if(prob >= 30) return { kind:'rain-light', summary:`Rain likely (${prob}%)`, drops:'light' };
+  return { kind:'sun', summary:'Clear / mostly sunny', drops:null };
+}
+
+/* ---------- small raindrop generator (visual flair for tiles) ---------- */
 function addDrops(container, count, heavy){
   const ex = container.querySelectorAll('.drops'); ex.forEach(x=>x.remove());
+  if(!count) return;
   const wrapper = document.createElement('div'); wrapper.className = 'drops';
   for(let i=0;i<count;i++){
     const d = document.createElement('div'); d.className = 'drop ' + (heavy ? 'heavy' : 'light');
-    d.style.left = (6 + Math.random()*80) + '%';
+    d.style.left = (8 + Math.random()*80) + '%';
     d.style.animationDelay = (Math.random()*0.8) + 's';
     wrapper.appendChild(d);
   }
   container.appendChild(wrapper);
 }
 
-/* ---------- fetch open-meteo ---------- */
+/* ---------- fetch Open-Meteo ---------- */
 async function fetchOpenMeteo(lat, lon){
   const params = new URLSearchParams({
     latitude: lat, longitude: lon,
@@ -262,7 +299,6 @@ async function fetchOpenMeteo(lat, lon){
   if(!res.ok) throw new Error('open-meteo error ' + res.status);
   return res.json();
 }
-
 function nearestIndexToNow(times){
   if(!times || !times.length) return 0;
   const now = Date.now(); let best=0,bd=Infinity;
@@ -270,9 +306,22 @@ function nearestIndexToNow(times){
   return best;
 }
 
-/* ---------- main loader ---------- */
+/* ---------- charts ---------- */
+const tempChart = new Chart(document.getElementById('tempChart').getContext('2d'), {
+  type:'line',
+  data:{ labels:[], datasets:[{ data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.08)', tension:0.3, pointRadius:4 }]},
+  options:{ plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:true }
+});
+const precipChart = new Chart(document.getElementById('precipChart').getContext('2d'), {
+  type:'bar',
+  data:{ labels:[], datasets:[{ data:[], backgroundColor:'#4da6ff' }]},
+  options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:100}}, responsive:true, maintainAspectRatio:true }
+});
+
+/* ---------- main render ---------- */
 async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
   try{
+    // update UI
     el('locName').innerText = label;
     marker.setLatLng([lat,lon]); map.setView([lat,lon],13);
     el('coords').innerText = `Lat: ${lat.toFixed(6)} • Lon: ${lon.toFixed(6)}`;
@@ -281,6 +330,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
     const times = data.hourly.time || [], temps = data.hourly.temperature_2m || [], probs = data.hourly.precipitation_probability || [], codes = data.hourly.weathercode || [];
     const idx = nearestIndexToNow(times);
 
+    // current / hi / lo
     const currentTemp = Math.round(temps[idx] ?? temps[0] ?? 0);
     const high = Math.round((data.daily.temperature_2m_max && data.daily.temperature_2m_max[0]) ?? currentTemp);
     const low = Math.round((data.daily.temperature_2m_min && data.daily.temperature_2m_min[0]) ?? currentTemp);
@@ -288,23 +338,21 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
     el('highTemp').innerText = `${high}°`;
     el('lowTemp').innerText = `${low}°`;
 
-    // meta info (moved to top)
+    // meta line (moved to top)
     const updated = new Date().toLocaleString();
     el('metaInfo').innerText = `${label} — Last updated: ${updated} • Lat: ${lat.toFixed(6)} • Lon: ${lon.toFixed(6)}`;
 
-    // choose icon & summary for now
+    // big icon & summary
     const codeNow = codes[idx] ?? (data.daily.weathercode ? data.daily.weathercode[0] : 0);
     const probNow = Math.round(probs[idx] ?? 0);
     const ch = interpretWeather(codeNow, probNow);
-
-    // big icon + summary
-    el('dayIcon').innerHTML = `<i class="wi ${ch.icon}" aria-hidden="true" style="font-size:56px; color:${getIconColor(ch.icon)}"></i>`;
+    el('dayIcon').innerHTML = iconSVG(ch.kind, 64);
     el('daySummary').innerText = ch.summary;
 
-    // animated drops (top icon)
+    // top drops
     const prev = el('dayIcon').querySelectorAll('.drops'); prev.forEach(x=>x.remove());
-    if(ch.drops === 'light') addDrops(el('dayIcon'),4,false);
-    if(ch.drops === 'heavy') addDrops(el('dayIcon'),8,true);
+    if(ch.drops === 'light') addDrops(el('dayIcon'), 4, false);
+    if(ch.drops === 'heavy') addDrops(el('dayIcon'), 8, true);
 
     // hourly tiles (12)
     el('hourlyRow').innerHTML = '';
@@ -315,21 +363,21 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
       const tch = interpretWeather(code, prob);
       const tile = document.createElement('div'); tile.className = 'hourly-tile';
       tile.innerHTML = `<div class="small">${i===0?'Now':fmtTime(t)}</div>
-                        <div style="margin-top:8px"><i class="wi ${tch.icon}" aria-hidden="true" style="font-size:28px; color:${getIconColor(tch.icon)}"></i></div>
+                        <div style="margin-top:8px">${iconSVG(tch.kind,36)}</div>
                         <div style="margin-top:6px;font-weight:700">${temp}°</div>
                         <div class="small" style="margin-top:6px">${prob}%</div>`;
       el('hourlyRow').appendChild(tile);
       if(tch.drops === 'light') addDrops(tile,2,false);
       if(tch.drops === 'heavy') addDrops(tile,4,true);
       tile.addEventListener('click', ()=> {
-        document.querySelectorAll('.hourly-tile').forEach(t=>t.classList.remove('selected'));
+        document.querySelectorAll('.hourly-tile').forEach(t2=>t2.classList.remove('selected'));
         tile.classList.add('selected');
         el('dayDetail').innerHTML = `<div style="font-weight:700">${i===0?'Now':fmtTime(t)}</div><div style="margin-top:6px">${temp}° • ${tch.summary}</div>`;
       });
       if(i===0){ tile.classList.add('selected'); el('dayDetail').innerHTML = `<div style="font-weight:700">Now</div><div style="margin-top:6px">${temp}° • ${tch.summary}</div>`; }
     }
 
-    // 5-day overview
+    // 5-day
     el('dayCards').innerHTML = '';
     const daily = data.daily || {};
     if(daily && daily.time){
@@ -342,7 +390,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
 
         const card = document.createElement('div'); card.className = 'day-card';
         card.innerHTML = `<div style="font-weight:700">${new Date(daily.time[i]).toLocaleDateString([], {weekday:'short'})}</div>
-                          <div style="margin-top:8px"><i class="wi ${dayCh.icon}" aria-hidden="true" style="font-size:36px; color:${getIconColor(dayCh.icon)}"></i></div>
+                          <div style="margin-top:8px">${iconSVG(dayCh.kind,38)}</div>
                           <div style="margin-top:8px">${hi}° / ${lo}°</div>
                           <div class="small" style="margin-top:8px">${dayCh.summary}</div>`;
         el('dayCards').appendChild(card);
@@ -355,7 +403,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
       }
     }
 
-    // charts
+    // charts next 12 hours
     const labels = times.slice(idx, idx+12).map(t => new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
     tempChart.data.labels = labels;
     tempChart.data.datasets[0].data = temps.slice(idx, idx+12);
@@ -371,18 +419,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
   }
 }
 
-/* ---------- icon color helper ---------- */
-function getIconColor(iconClass){
-  if(iconClass.includes('sun')) return getComputedStyle(document.documentElement).getPropertyValue('--sun') || '#FFD740';
-  if(iconClass.includes('sunny-overcast')) return getComputedStyle(document.documentElement).getPropertyValue('--sun-2') || '#FFB547';
-  if(iconClass.includes('cloud')) return getComputedStyle(document.documentElement).getPropertyValue('--cloud-white') || '#ffffff';
-  if(iconClass.includes('showers') || iconClass.includes('raindrop')) return getComputedStyle(document.documentElement).getPropertyValue('--rain-light') || '#66d6ff';
-  if(iconClass.includes('rain')) return getComputedStyle(document.documentElement).getPropertyValue('--rain-heavy') || '#1ea1ff';
-  if(iconClass.includes('thunder')) return getComputedStyle(document.documentElement).getPropertyValue('--storm') || '#d47cff';
-  return '#ffffff';
-}
-
-/* ---------- geocode simple ---------- */
+/* ---------- small geocode ---------- */
 async function geocode(q){
   const r = await fetch(GEO + encodeURIComponent(q) + '&count=5&language=en&format=json');
   if(!r.ok) return null;
@@ -390,18 +427,19 @@ async function geocode(q){
 }
 
 /* ---------- events ---------- */
-el('searchBtn').addEventListener('click', async ()=>{
-  const q = el('searchBox').value.trim(); if(!q) return alert('Type a place');
+document.getElementById('searchBtn').addEventListener('click', async ()=>{
+  const q = document.getElementById('searchBox').value.trim(); if(!q) return alert('Type a place');
   const res = await geocode(q); if(!res) return alert('Not found');
   loadAll(res.latitude, res.longitude, `${res.name}${res.admin1? ', '+res.admin1:''}${res.country? ', '+res.country : ''}`);
 });
-el('preset').addEventListener('change', function(){
+document.getElementById('preset').addEventListener('change', function(){
   const opt = this.selectedOptions[0]; if(!opt || !opt.dataset.lat) return;
   loadAll(Number(opt.dataset.lat), Number(opt.dataset.lon), opt.textContent);
 });
 
 /* ---------- init ---------- */
 loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name);
+/* refresh every 10 minutes */
 setInterval(()=> loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name), 10*60*1000);
 </script>
 </body>
