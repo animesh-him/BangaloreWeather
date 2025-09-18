@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>Weather Forecast</title>
 
-<!-- Weather Icons CSS -->
+<!-- Weather Icons (font) -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.10/css/weather-icons.min.css"/>
 
 <!-- Leaflet + Chart.js -->
@@ -18,19 +18,25 @@
   :root{
     --bg-from:#061018; --bg-to:#0a1625; --text:#eef6fb; --muted:#91a3b0;
     --card:#0f1720; --accent:#ff6b6b; --border:rgba(255,255,255,0.06);
-    --sun:#FFD740; --cloud:#FFFFFF; --cloud-gray:#9aa6b4; --rain-light:#66d6ff; --rain-heavy:#1ea1ff; --storm:#d47cff;
+    --sun:#FFD740; --sun-2:#FFB547; --cloud-white:#ffffff; --cloud-gray:#9aa6b4;
+    --rain-light:#66d6ff; --rain-heavy:#1ea1ff; --storm:#d47cff;
   }
   [data-theme="light"]{
     --bg-from:#f7fbff; --bg-to:#f1f6fb; --text:#111; --muted:#465563; --card:#ffffff;
-    --sun:#FFC107; --cloud:#ffffff; --cloud-gray:#6e7b86; --rain-light:#4db7ff; --rain-heavy:#0077e6; --storm:#8b5cf6;
+    --sun:#FFC107; --sun-2:#FFB547; --cloud-white:#ffffff; --cloud-gray:#6e7b86;
+    --rain-light:#4db7ff; --rain-heavy:#0077e6; --storm:#8b5cf6;
   }
 
   html,body{height:100%;margin:0;font-family:Inter,system-ui,Roboto,Arial;background:linear-gradient(180deg,var(--bg-from),var(--bg-to));color:var(--text);-webkit-font-smoothing:antialiased}
   .wrap{max-width:980px;margin:12px auto;padding:12px}
-  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header{display:flex;flex-direction:column;gap:6px}
+  .title-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   h1{margin:0;font-size:22px;color:var(--accent)}
   .subtitle{font-size:13px;color:var(--muted)}
+  .meta-line{font-size:13px;color:var(--muted)} /* moved up as requested */
+
   .controls{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+
   select,input,button{padding:6px 8px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:13px}
   .mini{padding:6px 8px;font-size:13px}
 
@@ -46,7 +52,7 @@
   .temp-left,.temp-right{font-size:13px;color:var(--muted);text-align:center}
   .temp-center{font-size:44px;font-weight:800;text-align:center;min-width:90px}
   .summary-block{display:flex;gap:12px;align-items:center;margin-left:auto}
-  .summary-icon{width:62px;height:62px;display:flex;align-items:center;justify-content:center}
+  .summary-icon{width:72px;height:72px;display:flex;align-items:center;justify-content:center;border-radius:8px}
 
   .hourly-row{display:flex;gap:8px;overflow-x:auto;padding:10px 4px;margin-top:12px}
   .hourly-tile{min-width:76px;padding:8px;border-radius:10px;text-align:center;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
@@ -56,22 +62,19 @@
   .day-card{min-width:100px;padding:10px;border-radius:10px;text-align:center;background:rgba(255,255,255,0.02);cursor:pointer}
   .day-card.selected{outline:2px solid rgba(255,255,255,0.08);transform:translateY(-6px)}
 
-  /* ---------- CHARTS: fix height & prevent infinite growth ---------- */
-  /* pin canvas to fixed height so chart cannot grow endlessly */
+  /* pin charts to fixed height so they don't expand endlessly */
   .card canvas { display:block; width:100% !important; height:220px !important; max-height:260px; }
-  /* Chart container overflow hidden to avoid page stretch */
   .card .chart-container { overflow:hidden; }
 
   #map{height:160px;border-radius:10px;margin-top:10px;border:1px solid var(--border)}
 
-  /* Weather Icons color mapping */
-  .wi-sun { color: var(--sun); text-shadow: 0 0 8px rgba(255,215,0,0.12); font-size:44px; }
-  .wi-cloud { color: var(--cloud-gray); font-size:36px; }
-  .wi-cloudy { color: var(--cloud-gray); font-size:36px; }
-  .wi-day-sunny-overcast { color: var(--sun); font-size:36px; }
-  .wi-raindrop, .wi-showers { color: var(--rain-light); font-size:28px; }
-  .wi-rain { color: var(--rain-heavy); font-size:28px; }
-  .wi-thunderstorm { color: var(--storm); font-size:36px; }
+  /* Weather Icons color mapping — stronger, filled colors */
+  .wi-day-sunny { color: var(--sun); font-size:52px; text-shadow:0 4px 12px rgba(255,215,0,0.08) }
+  .wi-day-sunny-overcast { color: var(--sun-2); font-size:44px }
+  .wi-cloud, .wi-cloudy { color: var(--cloud-white); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25)); font-size:44px }
+  .wi-showers, .wi-raindrop { color: var(--rain-light); font-size:34px }
+  .wi-rain { color: var(--rain-heavy); font-size:34px }
+  .wi-thunderstorm { color: var(--storm); font-size:40px; text-shadow:0 4px 10px rgba(196,120,255,0.06) }
 
   .drops { position:relative; width:100%; height:40px; pointer-events:none; overflow:visible }
   .drops .drop{ position:absolute; width:3px; height:10px; border-radius:2px; animation:fall 0.9s linear infinite; opacity:0.95 }
@@ -86,27 +89,34 @@
 <body>
   <div class="wrap">
     <header>
-      <div>
-        <h1>Weather Forecast</h1>
-        <div class="subtitle">Hourly • 5-Day • Open-Meteo (free)</div>
+      <div class="title-row">
+        <div>
+          <h1>Weather Forecast</h1>
+          <div class="subtitle">Hourly • 5-Day • Open-Meteo (free)</div>
+        </div>
+
+        <div class="controls" style="margin-left:auto">
+          <select id="preset" class="mini" aria-label="Presets">
+            <option value="">Presets</option>
+            <option data-lat="13.128893" data-lon="77.649531">Aerospace Park</option>
+            <option data-lat="12.9141" data-lon="74.8560">Mangalore</option>
+            <option data-lat="17.3850" data-lon="78.4867">Hyderabad</option>
+            <option data-lat="12.9699" data-lon="77.7499">Whitefield</option>
+            <option data-lat="12.8386" data-lon="77.6771">Electronic City</option>
+            <option data-lat="12.9165" data-lon="77.5716">JP Nagar</option>
+            <option data-lat="12.9784" data-lon="77.7011">Marathahalli</option>
+            <option data-lat="13.1986" data-lon="77.7066">Bengaluru Airport</option>
+          </select>
+          <input id="searchBox" placeholder="Search city / place" />
+          <button id="searchBtn" class="mini">Search</button>
+          <button id="themeBtn" class="mini">🌓</button>
+        </div>
       </div>
 
-      <div class="controls" role="group" aria-label="controls">
-        <select id="preset" class="mini" aria-label="Presets">
-          <option value="">Presets</option>
-          <option data-lat="13.128893" data-lon="77.649531">Aerospace Park</option>
-          <option data-lat="12.9141" data-lon="74.8560">Mangalore</option>
-          <option data-lat="17.3850" data-lon="78.4867">Hyderabad</option>
-          <option data-lat="12.9699" data-lon="77.7499">Whitefield</option>
-          <option data-lat="12.8386" data-lon="77.6771">Electronic City</option>
-          <option data-lat="12.9165" data-lon="77.5716">JP Nagar</option>
-          <option data-lat="12.9784" data-lon="77.7011">Marathahalli</option>
-          <option data-lat="13.1986" data-lon="77.7066">Bengaluru Airport</option>
-        </select>
-
-        <input id="searchBox" placeholder="Search city / place" aria-label="search" />
-        <button id="searchBtn" class="mini">Search</button>
-        <button id="themeBtn" class="mini" title="Toggle theme">🌓</button>
+      <!-- moved meta-line here (above the big summary card) -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div id="metaInfo" class="meta-line">Aerospace Park — Last updated: — • Lat: 13.128893 • Lon: 77.649531</div>
+        <div class="small" id="miniNote" style="color:var(--muted)">Default: Aerospace Park</div>
       </div>
     </header>
 
@@ -174,7 +184,7 @@
 
         <div class="card">
           <div style="font-weight:700">Info</div>
-          <div class="small" style="margin-top:8px">Data: Open-Meteo (free). Icons: Weather Icons CDN. Tap hourly tiles for details. Default location Aerospace Park.</div>
+          <div class="small" style="margin-top:8px">Data: Open-Meteo. Icons: Weather Icons (Erik Flowers). Charts: Chart.js. Map: Leaflet.</div>
         </div>
       </aside>
     </main>
@@ -189,7 +199,7 @@ const el = id => document.getElementById(id);
 function fmtTime(iso){ try { return new Date(iso).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); } catch(e){ return iso } }
 function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
 
-/* ---------- theme ---------- */
+/* ---------- theme toggle ---------- */
 const root = document.documentElement;
 if(localStorage.getItem('theme') === 'light') root.setAttribute('data-theme','light'); else root.removeAttribute('data-theme');
 el('themeBtn').addEventListener('click', ()=> {
@@ -202,34 +212,32 @@ const map = L.map('map', { center:[DEFAULT.lat, DEFAULT.lon], zoom:13, attributi
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 let marker = L.marker([DEFAULT.lat, DEFAULT.lon]).addTo(map);
 
-/* ---------- charts (maintainAspectRatio true so pinned CSS height is respected) ---------- */
+/* ---------- charts ---------- */
 const tempChart = new Chart(el('tempChart').getContext('2d'), {
-  type:'line',
-  data:{ labels:[], datasets:[{ data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.08)', tension:0.3, pointRadius:4 }]},
+  type:'line', data:{ labels:[], datasets:[{ data:[], borderColor:'#ff8a65', backgroundColor:'rgba(255,138,101,0.08)', tension:0.3, pointRadius:4 }]},
   options:{ plugins:{legend:{display:false}}, responsive:true, maintainAspectRatio:true }
 });
 const precipChart = new Chart(el('precipChart').getContext('2d'), {
-  type:'bar',
-  data:{ labels:[], datasets:[{ data:[], backgroundColor:'#4da6ff' }]},
+  type:'bar', data:{ labels:[], datasets:[{ data:[], backgroundColor:'#4da6ff' }]},
   options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true, max:100}}, responsive:true, maintainAspectRatio:true }
 });
 
-/* ---------- interpret weather code -> icon + summary ---------- */
+/* ---------- map weathercode -> icon + summary ---------- */
 function interpretWeather(code,prob){
   const c = Number(code);
-  if([95,96].includes(c) || prob >= 85) return { icon: 'wi-thunderstorm', summary:'Thunderstorm likely — stay alert', drops: 'heavy' };
-  if(c === 65 || (prob >= 60 && prob < 85)) return { icon: 'wi-rain', summary:`Heavy rain expected (${prob}%)`, drops:'heavy' };
-  if([61,63,80,81,82].includes(c) || (prob >= 30 && prob < 60)) return { icon: 'wi-showers', summary:`Rain likely (${prob}%)`, drops:'light' };
-  if([51,53,55].includes(c) || (prob > 0 && prob < 30)) return { icon: 'wi-raindrop', summary:`Light showers possible (${prob}%)`, drops:'light' };
-  if([3,45,48].includes(c)) return { icon: 'wi-cloud', summary:'Cloudy — little or no rain expected', drops: null };
-  if([1,2].includes(c)) return { icon: 'wi-day-sunny-overcast', summary:'Partly sunny — low chance of showers', drops:null };
-  if(c === 0) return { icon: 'wi-day-sunny', summary:'Mostly sunny — no rain expected', drops:null };
+  if([95,96].includes(c) || prob >= 85) return { icon: 'wi-thunderstorm', summary:'Thunderstorm likely — stay alert', drops:'heavy' };
+  if(c === 65 || (prob >= 60 && prob < 85)) return { icon:'wi-rain', summary:`Heavy rain expected (${prob}%)`, drops:'heavy' };
+  if([61,63,80,81,82].includes(c) || (prob >= 30 && prob < 60)) return { icon:'wi-showers', summary:`Rain likely (${prob}%)`, drops:'light' };
+  if([51,53,55].includes(c) || (prob > 0 && prob < 30)) return { icon:'wi-raindrop', summary:`Light showers possible (${prob}%)`, drops:'light' };
+  if([3,45,48].includes(c)) return { icon:'wi-cloud', summary:'Cloudy — little or no rain expected', drops:null };
+  if([1,2].includes(c)) return { icon:'wi-day-sunny-overcast', summary:'Partly sunny — low chance of showers', drops:null };
+  if(c === 0) return { icon:'wi-day-sunny', summary:'Mostly sunny — no rain expected', drops:null };
   if(prob >= 60) return { icon:'wi-rain', summary:`Heavy rain likely (${prob}%)`, drops:'heavy' };
   if(prob >= 30) return { icon:'wi-showers', summary:`Rain likely (${prob}%)`, drops:'light' };
   return { icon:'wi-day-sunny', summary:'Clear / mostly sunny', drops:null };
 }
 
-/* ---------- small raindrop generator ---------- */
+/* ---------- little raindrop animation helper ---------- */
 function addDrops(container, count, heavy){
   const ex = container.querySelectorAll('.drops'); ex.forEach(x=>x.remove());
   const wrapper = document.createElement('div'); wrapper.className = 'drops';
@@ -280,20 +288,25 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
     el('highTemp').innerText = `${high}°`;
     el('lowTemp').innerText = `${low}°`;
 
+    // meta info (moved to top)
+    const updated = new Date().toLocaleString();
+    el('metaInfo').innerText = `${label} — Last updated: ${updated} • Lat: ${lat.toFixed(6)} • Lon: ${lon.toFixed(6)}`;
+
+    // choose icon & summary for now
     const codeNow = codes[idx] ?? (data.daily.weathercode ? data.daily.weathercode[0] : 0);
     const probNow = Math.round(probs[idx] ?? 0);
     const ch = interpretWeather(codeNow, probNow);
 
     // big icon + summary
-    el('dayIcon').innerHTML = `<i class="wi ${ch.icon}" aria-hidden="true" style="font-size:56px; color: ${getIconColor(ch.icon)}"></i>`;
+    el('dayIcon').innerHTML = `<i class="wi ${ch.icon}" aria-hidden="true" style="font-size:56px; color:${getIconColor(ch.icon)}"></i>`;
     el('daySummary').innerText = ch.summary;
 
-    // animated drops for big icon
-    const prevDrops = el('dayIcon').querySelectorAll('.drops'); prevDrops.forEach(x=>x.remove());
-    if(ch.drops === 'light') addDrops(el('dayIcon'), 4, false);
-    if(ch.drops === 'heavy') addDrops(el('dayIcon'), 8, true);
+    // animated drops (top icon)
+    const prev = el('dayIcon').querySelectorAll('.drops'); prev.forEach(x=>x.remove());
+    if(ch.drops === 'light') addDrops(el('dayIcon'),4,false);
+    if(ch.drops === 'heavy') addDrops(el('dayIcon'),8,true);
 
-    // hourly tiles
+    // hourly tiles (12)
     el('hourlyRow').innerHTML = '';
     const count = Math.min(12, Math.max(6, times.length - idx));
     for(let i=0;i<count;i++){
@@ -342,7 +355,7 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
       }
     }
 
-    // charts (labels limited to next 12)
+    // charts
     const labels = times.slice(idx, idx+12).map(t => new Date(t).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));
     tempChart.data.labels = labels;
     tempChart.data.datasets[0].data = temps.slice(idx, idx+12);
@@ -358,17 +371,18 @@ async function loadAll(lat=DEFAULT.lat, lon=DEFAULT.lon, label=DEFAULT.name){
   }
 }
 
-/* ---------- helper color for icons ---------- */
+/* ---------- icon color helper ---------- */
 function getIconColor(iconClass){
   if(iconClass.includes('sun')) return getComputedStyle(document.documentElement).getPropertyValue('--sun') || '#FFD740';
-  if(iconClass.includes('cloud')) return getComputedStyle(document.documentElement).getPropertyValue('--cloud-gray') || '#93A3B6';
-  if(iconClass.includes('raindrop') || iconClass.includes('showers')) return getComputedStyle(document.documentElement).getPropertyValue('--rain-light') || '#66d6ff';
+  if(iconClass.includes('sunny-overcast')) return getComputedStyle(document.documentElement).getPropertyValue('--sun-2') || '#FFB547';
+  if(iconClass.includes('cloud')) return getComputedStyle(document.documentElement).getPropertyValue('--cloud-white') || '#ffffff';
+  if(iconClass.includes('showers') || iconClass.includes('raindrop')) return getComputedStyle(document.documentElement).getPropertyValue('--rain-light') || '#66d6ff';
   if(iconClass.includes('rain')) return getComputedStyle(document.documentElement).getPropertyValue('--rain-heavy') || '#1ea1ff';
   if(iconClass.includes('thunder')) return getComputedStyle(document.documentElement).getPropertyValue('--storm') || '#d47cff';
   return '#ffffff';
 }
 
-/* ---------- geocode helper ---------- */
+/* ---------- geocode simple ---------- */
 async function geocode(q){
   const r = await fetch(GEO + encodeURIComponent(q) + '&count=5&language=en&format=json');
   if(!r.ok) return null;
@@ -388,7 +402,6 @@ el('preset').addEventListener('change', function(){
 
 /* ---------- init ---------- */
 loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name);
-/* optional periodic refresh kept but it won't re-size charts: */
 setInterval(()=> loadAll(DEFAULT.lat, DEFAULT.lon, DEFAULT.name), 10*60*1000);
 </script>
 </body>
