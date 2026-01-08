@@ -1,5 +1,5 @@
 {
-  "fetched_at": "2026-01-08T05:16:54.942715+00:00",
+  "fetched_at": "2026-01-08T06:19:57.907229+00:00",
   "location": {
     "name": "Aerospace Park, Bangalore",
     "latitude": 12.9896,
@@ -8,7 +8,7 @@
   "open_meteo": {
     "latitude": 13.0,
     "longitude": 77.625,
-    "generationtime_ms": 0.10526180267333984,
+    "generationtime_ms": 0.12373924255371094,
     "utc_offset_seconds": 19800,
     "timezone": "Asia/Kolkata",
     "timezone_abbreviation": "GMT+5:30",
